@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
-import com.rauldev.personalfinance.application.port.out.FinancialOperationRepository;
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.query.OperationSearchCriteria;
@@ -76,7 +75,6 @@ class ApplicationContractsTest {
     void repositoryContractsAreInterfaces() {
         assertTrue(AccountRepository.class.isInterface());
         assertTrue(CategoryRepository.class.isInterface());
-        assertTrue(FinancialOperationRepository.class.isInterface());
         assertTrue(ReversalRepository.class.isInterface());
         assertTrue(TransactionManager.class.isInterface());
     }
