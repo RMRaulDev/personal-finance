@@ -23,11 +23,11 @@ class ApplicationContractsTest {
         UUID userId = UUID.randomUUID();
         OperationSearchCriteria criteria = new OperationSearchCriteria(
             userId, null, null, OperationType.INCOME,
-            LocalDate.of(2026, 8, 20), null);
+            LocalDate.of(2026, 8, 20), null, 1, 20);
 
         assertEquals(userId, criteria.userId());
         assertEquals(OperationType.INCOME, criteria.operationType());
-        assertNotNull(criteria.fromDate());
+        assertNotNull(criteria.from());
         assertNotNull(assertThrows(NullPointerException.class,
             () -> OperationSearchCriteria.forUser(null)));
     }
@@ -36,7 +36,7 @@ class ApplicationContractsTest {
     void criteriaRejectsInvertedDateRange() {
         assertNotNull(assertThrows(IllegalArgumentException.class, () -> new OperationSearchCriteria(
             UUID.randomUUID(), null, null, null,
-            LocalDate.of(2026, 8, 21), LocalDate.of(2026, 8, 20))));
+            LocalDate.of(2026, 8, 21), LocalDate.of(2026, 8, 20), 1, 20)));
     }
 
     @Test
@@ -44,10 +44,24 @@ class ApplicationContractsTest {
         LocalDate date = LocalDate.of(2026, 8, 20);
 
         OperationSearchCriteria criteria = new OperationSearchCriteria(
-            UUID.randomUUID(), null, null, null, date, date);
+            UUID.randomUUID(), null, null, null, date, date, 1, 20);
 
-        assertEquals(date, criteria.fromDate());
-        assertEquals(date, criteria.toDate());
+        assertEquals(date, criteria.from());
+        assertEquals(date, criteria.to());
+    }
+
+    @Test
+    void criteriaRejectsInvalidPageAndPageSize() {
+        UUID userId = UUID.randomUUID();
+        
+        assertThrows(IllegalArgumentException.class, () -> new OperationSearchCriteria(
+            userId, null, null, null, null, null, 0, 20));
+        
+        assertThrows(IllegalArgumentException.class, () -> new OperationSearchCriteria(
+            userId, null, null, null, null, null, 1, 0));
+        
+        assertThrows(IllegalArgumentException.class, () -> new OperationSearchCriteria(
+            userId, null, null, null, null, null, 1, ApplicationConstants.MAX_PAGE_SIZE + 1));
     }
 
     @Test
