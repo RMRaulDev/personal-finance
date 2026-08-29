@@ -6,9 +6,11 @@ import java.util.UUID;
 import com.rauldev.personalfinance.domain.Reversal;
 
 public interface ReversalRepository {
+    Reversal create(Reversal reversal);
+
     Optional<Reversal> findById(UUID id);
 
     Optional<Reversal> findByOriginalOperationId(UUID operationId);
 
-    void save(Reversal reversal);
+    void deleteById(UUID id);
 }
