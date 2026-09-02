@@ -17,5 +17,15 @@ public interface AccountRepository {
 
     boolean existsByUserIdAndName(UUID userId, String name);
 
+    default boolean existsByUserIdAndNameAndIdNot(UUID userId, String name, UUID accountId) {
+        if (!existsByUserIdAndName(userId, name)) {
+            return false;
+        }
+
+        return findById(accountId)
+            .map(account -> !account.userId().equals(userId) || !account.name().equals(name))
+            .orElse(true);
+    }
+
     Account update(Account account);
 }
