@@ -11,5 +11,5 @@ import com.rauldev.personalfinance.application.readmodel.FinancialOperationHisto
 public interface FinancialOperationQueryPort {
     List<FinancialOperationHistoryItem> search(OperationSearchCriteria criteria);
 
-    Optional<FinancialOperationDetails> findDetailById(UUID operationId);
+    Optional<FinancialOperationDetails> findDetailByIdAndUserId(UUID operationId, UUID userId);
 }

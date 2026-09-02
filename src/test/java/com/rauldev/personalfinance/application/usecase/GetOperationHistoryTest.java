@@ -115,7 +115,7 @@ class GetOperationHistoryTest {
         }
 
         @Override
-        public Optional<FinancialOperationDetails> findDetailById(UUID operationId) {
+        public Optional<FinancialOperationDetails> findDetailByIdAndUserId(UUID operationId, UUID userId) {
             return Optional.empty();
         }
     }
