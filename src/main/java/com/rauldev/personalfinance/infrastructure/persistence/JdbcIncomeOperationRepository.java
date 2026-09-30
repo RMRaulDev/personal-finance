@@ -147,21 +147,26 @@ public final class JdbcIncomeOperationRepository implements IncomeOperationRepos
     }
 
     private static Income mapRow(ResultSet resultSet) throws SQLException {
-        UUID id = UUID.fromString(resultSet.getString("id"));
-        UUID userId = UUID.fromString(resultSet.getString("user_id"));
-        UUID accountId = UUID.fromString(resultSet.getString("account_id"));
-        UUID categoryId = UUID.fromString(resultSet.getString("category_id"));
-        Money amount = Money.ofCents(resultSet.getLong("amount"));
-        LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
+        String rowId = resultSet.getString("id");
+        try {
+            UUID id = UUID.fromString(resultSet.getString("id"));
+            UUID userId = UUID.fromString(resultSet.getString("user_id"));
+            UUID accountId = UUID.fromString(resultSet.getString("account_id"));
+            UUID categoryId = UUID.fromString(resultSet.getString("category_id"));
+            Money amount = Money.ofCents(resultSet.getLong("amount"));
+            LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
 
-        Income income = new Income(id, userId, amount, operationDate, accountId, categoryId);
+            Income income = new Income(id, userId, amount, operationDate, accountId, categoryId);
 
-        OperationStatus status = OperationStatus.valueOf(resultSet.getString("status"));
-        if (status == OperationStatus.CANCELLED) {
-            income.cancel();
+            OperationStatus status = OperationStatus.valueOf(resultSet.getString("status"));
+            if (status == OperationStatus.CANCELLED) {
+                income.cancel();
+            }
+
+            return income;
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("income_operations", rowId, e);
         }
-
-        return income;
     }
 
     private static long toCents(Money money) {

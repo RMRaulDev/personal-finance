@@ -128,14 +128,19 @@ public final class JdbcTransferOperationRepository implements TransferOperationR
     }
 
     private static Transfer mapRow(ResultSet resultSet) throws SQLException {
-        UUID id = UUID.fromString(resultSet.getString("id"));
-        UUID userId = UUID.fromString(resultSet.getString("user_id"));
-        UUID sourceAccountId = UUID.fromString(resultSet.getString("source_account_id"));
-        UUID targetAccountId = UUID.fromString(resultSet.getString("target_account_id"));
-        Money amount = Money.ofCents(resultSet.getLong("amount"));
-        LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
+        String rowId = resultSet.getString("id");
+        try {
+            UUID id = UUID.fromString(resultSet.getString("id"));
+            UUID userId = UUID.fromString(resultSet.getString("user_id"));
+            UUID sourceAccountId = UUID.fromString(resultSet.getString("source_account_id"));
+            UUID targetAccountId = UUID.fromString(resultSet.getString("target_account_id"));
+            Money amount = Money.ofCents(resultSet.getLong("amount"));
+            LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
 
-        return new Transfer(id, userId, amount, operationDate, sourceAccountId, targetAccountId);
+            return new Transfer(id, userId, amount, operationDate, sourceAccountId, targetAccountId);
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("transfer_operations", rowId, e);
+        }
     }
 
     private static long toCents(Money money) {

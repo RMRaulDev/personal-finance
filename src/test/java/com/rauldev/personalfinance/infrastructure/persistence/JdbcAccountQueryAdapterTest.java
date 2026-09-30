@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -165,6 +166,25 @@ class JdbcAccountQueryAdapterTest {
 
         assertThrows(NullPointerException.class,
             () -> accountQueryAdapter.findByIdAndUserId(UUID.randomUUID(), null));
+    }
+
+    @Test
+    void failsWithCorruptedPersistedDataWhenAccountStatusIsInvalid() throws SQLException {
+        UUID rowId = UUID.randomUUID();
+        insertRawRow("INSERT INTO accounts (id, user_id, name, balance, status) VALUES ('" + rowId + "', '" + USER_A_ID + "', 'Broken', 0, 'BOGUS')");
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class, () -> accountQueryAdapter.findByIdAndUserId(rowId, USER_A_ID));
+
+        assertTrue(ex.getMessage().contains("accounts"));
+        assertTrue(ex.getMessage().contains(rowId.toString()));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    private void insertRawRow(String sql) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void initializeSchema(Connection connection) throws Exception {

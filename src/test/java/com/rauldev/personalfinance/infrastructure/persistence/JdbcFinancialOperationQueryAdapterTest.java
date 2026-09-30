@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -470,6 +472,44 @@ class JdbcFinancialOperationQueryAdapterTest {
         Optional<FinancialOperationDetails> insideDetails = transactionManager.execute(
             () -> queryAdapter.findDetailByIdAndUserId(incomeId, USER_A_ID));
         assertTrue(insideDetails.isPresent());
+    }
+
+    @Test
+    void searchFailsWithCorruptedPersistedDataWhenOperationStatusIsInvalid() throws SQLException {
+        UUID incomeId = insertCorruptIncome();
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class,
+            () -> queryAdapter.search(OperationSearchCriteria.forUser(USER_A_ID)));
+
+        assertTrue(ex.getMessage().contains("financial operations"));
+        assertTrue(ex.getMessage().contains(incomeId.toString()));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    @Test
+    void findDetailFailsWithCorruptedPersistedDataWhenOperationStatusIsInvalid() throws SQLException {
+        UUID incomeId = insertCorruptIncome();
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class,
+            () -> queryAdapter.findDetailByIdAndUserId(incomeId, USER_A_ID));
+
+        assertTrue(ex.getMessage().contains("financial operations"));
+        assertTrue(ex.getMessage().contains(incomeId.toString()));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    private UUID insertCorruptIncome() throws SQLException {
+        UUID incomeId = UUID.randomUUID();
+        insertRawRow("INSERT INTO income_operations (id, account_id, category_id, amount, operation_date, status) "
+            + "VALUES ('" + incomeId + "', '" + ACCOUNT_A1_ID + "', '" + CATEGORY_INCOME_ID + "', 100, '2026-08-20', 'BOGUS')");
+        return incomeId;
+    }
+
+    private void insertRawRow(String sql) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void initializeSchema(Connection connection) throws Exception {

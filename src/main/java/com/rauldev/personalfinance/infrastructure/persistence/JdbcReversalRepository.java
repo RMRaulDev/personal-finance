@@ -159,35 +159,43 @@ public final class JdbcReversalRepository implements ReversalRepository {
     }
 
     private static Reversal mapRow(ResultSet resultSet) throws SQLException {
-        UUID reversalId = UUID.fromString(resultSet.getString("reversal_id"));
-        Instant cancelledAt = Instant.parse(resultSet.getString("cancelled_at"));
+        String rowId = resultSet.getString("reversal_id");
         String opType = resultSet.getString("op_type");
-
-        UUID opId = UUID.fromString(resultSet.getString("op_id"));
-        UUID userId = UUID.fromString(resultSet.getString("user_id"));
-        UUID accountId = UUID.fromString(resultSet.getString("account_id"));
-        UUID categoryId = UUID.fromString(resultSet.getString("category_id"));
-        Money amount = Money.ofCents(resultSet.getLong("amount"));
-        LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
-        OperationStatus status = OperationStatus.valueOf(resultSet.getString("status"));
-
-        FinancialOperation originalOperation;
-        if ("INCOME".equals(opType)) {
-            Income income = new Income(opId, userId, amount, operationDate, accountId, categoryId);
-            if (status == OperationStatus.CANCELLED) {
-                income.cancel();
-            }
-            originalOperation = income;
-        } else if ("EXPENSE".equals(opType)) {
-            Expense expense = new Expense(opId, userId, amount, operationDate, accountId, categoryId);
-            if (status == OperationStatus.CANCELLED) {
-                expense.cancel();
-            }
-            originalOperation = expense;
-        } else {
-            throw new IllegalStateException("Unknown operation type: " + opType);
+        if (!"INCOME".equals(opType) && !"EXPENSE".equals(opType)) {
+            throw new CorruptedPersistedDataException(
+                "reversals", rowId, new IllegalStateException("Unknown operation type: " + opType));
         }
 
-        return new Reversal(reversalId, originalOperation, cancelledAt);
+        try {
+            UUID reversalId = UUID.fromString(resultSet.getString("reversal_id"));
+            Instant cancelledAt = Instant.parse(resultSet.getString("cancelled_at"));
+
+            UUID opId = UUID.fromString(resultSet.getString("op_id"));
+            UUID userId = UUID.fromString(resultSet.getString("user_id"));
+            UUID accountId = UUID.fromString(resultSet.getString("account_id"));
+            UUID categoryId = UUID.fromString(resultSet.getString("category_id"));
+            Money amount = Money.ofCents(resultSet.getLong("amount"));
+            LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
+            OperationStatus status = OperationStatus.valueOf(resultSet.getString("status"));
+
+            FinancialOperation originalOperation;
+            if ("INCOME".equals(opType)) {
+                Income income = new Income(opId, userId, amount, operationDate, accountId, categoryId);
+                if (status == OperationStatus.CANCELLED) {
+                    income.cancel();
+                }
+                originalOperation = income;
+            } else {
+                Expense expense = new Expense(opId, userId, amount, operationDate, accountId, categoryId);
+                if (status == OperationStatus.CANCELLED) {
+                    expense.cancel();
+                }
+                originalOperation = expense;
+            }
+
+            return new Reversal(reversalId, originalOperation, cancelledAt);
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("reversals", rowId, e);
+        }
     }
 }

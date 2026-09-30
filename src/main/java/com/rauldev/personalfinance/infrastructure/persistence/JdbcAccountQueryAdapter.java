@@ -61,12 +61,17 @@ public final class JdbcAccountQueryAdapter implements AccountQueryPort {
     }
 
     private static AccountDetails mapRow(ResultSet resultSet) throws SQLException {
-        UUID id = UUID.fromString(resultSet.getString("id"));
-        UUID userId = UUID.fromString(resultSet.getString("user_id"));
-        String name = resultSet.getString("name");
-        Money balance = Money.ofCents(resultSet.getLong("balance"));
-        AccountStatus status = AccountStatus.valueOf(resultSet.getString("status"));
+        String rowId = resultSet.getString("id");
+        try {
+            UUID id = UUID.fromString(resultSet.getString("id"));
+            UUID userId = UUID.fromString(resultSet.getString("user_id"));
+            String name = resultSet.getString("name");
+            Money balance = Money.ofCents(resultSet.getLong("balance"));
+            AccountStatus status = AccountStatus.valueOf(resultSet.getString("status"));
 
-        return new AccountDetails(id, userId, name, balance, status);
+            return new AccountDetails(id, userId, name, balance, status);
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("accounts", rowId, e);
+        }
     }
 }

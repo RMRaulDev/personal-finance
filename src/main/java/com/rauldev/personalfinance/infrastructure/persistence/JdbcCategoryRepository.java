@@ -140,18 +140,23 @@ public final class JdbcCategoryRepository implements CategoryRepository {
     }
 
     private static Category mapRow(ResultSet resultSet) throws SQLException {
-        UUID id = UUID.fromString(resultSet.getString("id"));
-        UUID userId = UUID.fromString(resultSet.getString("user_id"));
-        String name = resultSet.getString("name");
-        CategoryType type = CategoryType.valueOf(resultSet.getString("type"));
+        String rowId = resultSet.getString("id");
+        try {
+            UUID id = UUID.fromString(resultSet.getString("id"));
+            UUID userId = UUID.fromString(resultSet.getString("user_id"));
+            String name = resultSet.getString("name");
+            CategoryType type = CategoryType.valueOf(resultSet.getString("type"));
 
-        Category category = new Category(id, userId, name, type);
+            Category category = new Category(id, userId, name, type);
 
-        CategoryStatus status = CategoryStatus.valueOf(resultSet.getString("status"));
-        if (status == CategoryStatus.INACTIVE) {
-            category.deactivate();
+            CategoryStatus status = CategoryStatus.valueOf(resultSet.getString("status"));
+            if (status == CategoryStatus.INACTIVE) {
+                category.deactivate();
+            }
+
+            return category;
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("categories", rowId, e);
         }
-
-        return category;
     }
 }

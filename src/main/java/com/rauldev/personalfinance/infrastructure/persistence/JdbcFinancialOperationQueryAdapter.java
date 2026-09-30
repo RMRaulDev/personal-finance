@@ -266,72 +266,84 @@ public final class JdbcFinancialOperationQueryAdapter implements FinancialOperat
     }
 
     private static FinancialOperationHistoryItem mapHistoryItem(ResultSet rs) throws SQLException {
-        UUID opId = UUID.fromString(rs.getString("op_id"));
-        OperationType opType = OperationType.valueOf(rs.getString("op_type"));
-        Money amount = Money.ofCents(rs.getLong("amount"));
-        LocalDate operationDate = LocalDate.parse(rs.getString("operation_date"));
+        String rowId = rs.getString("op_id");
+        String opTypeValue = rs.getString("op_type");
+        try {
+            UUID opId = UUID.fromString(rs.getString("op_id"));
+            OperationType opType = OperationType.valueOf(rs.getString("op_type"));
+            Money amount = Money.ofCents(rs.getLong("amount"));
+            LocalDate operationDate = LocalDate.parse(rs.getString("operation_date"));
 
-        String statusStr = rs.getString("status");
-        OperationStatus status = statusStr != null ? OperationStatus.valueOf(statusStr) : null;
+            String statusStr = rs.getString("status");
+            OperationStatus status = statusStr != null ? OperationStatus.valueOf(statusStr) : null;
 
-        String cancelledAtStr = rs.getString("cancelled_at");
-        Instant cancelledAt = cancelledAtStr != null ? Instant.parse(cancelledAtStr) : null;
+            String cancelledAtStr = rs.getString("cancelled_at");
+            Instant cancelledAt = cancelledAtStr != null ? Instant.parse(cancelledAtStr) : null;
 
-        String accountIdStr = rs.getString("account_id");
-        AccountSummary account = accountIdStr != null
-            ? new AccountSummary(UUID.fromString(accountIdStr), rs.getString("account_name"))
-            : null;
+            String accountIdStr = rs.getString("account_id");
+            AccountSummary account = accountIdStr != null
+                ? new AccountSummary(UUID.fromString(accountIdStr), rs.getString("account_name"))
+                : null;
 
-        String categoryIdStr = rs.getString("category_id");
-        CategorySummary category = categoryIdStr != null
-            ? new CategorySummary(UUID.fromString(categoryIdStr), rs.getString("category_name"))
-            : null;
+            String categoryIdStr = rs.getString("category_id");
+            CategorySummary category = categoryIdStr != null
+                ? new CategorySummary(UUID.fromString(categoryIdStr), rs.getString("category_name"))
+                : null;
 
-        String sourceAccountIdStr = rs.getString("source_account_id");
-        TransferDetails transfer = sourceAccountIdStr != null
-            ? new TransferDetails(
-                new AccountSummary(UUID.fromString(sourceAccountIdStr), rs.getString("source_account_name")),
-                new AccountSummary(UUID.fromString(rs.getString("target_account_id")), rs.getString("target_account_name"))
-            )
-            : null;
+            String sourceAccountIdStr = rs.getString("source_account_id");
+            TransferDetails transfer = sourceAccountIdStr != null
+                ? new TransferDetails(
+                    new AccountSummary(UUID.fromString(sourceAccountIdStr), rs.getString("source_account_name")),
+                    new AccountSummary(UUID.fromString(rs.getString("target_account_id")), rs.getString("target_account_name"))
+                )
+                : null;
 
-        return new FinancialOperationHistoryItem(
-            opId, opType, amount, operationDate, status, cancelledAt, account, category, transfer
-        );
+            return new FinancialOperationHistoryItem(
+                opId, opType, amount, operationDate, status, cancelledAt, account, category, transfer
+            );
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("financial operations (" + opTypeValue + ")", rowId, e);
+        }
     }
 
     private static FinancialOperationDetails mapDetails(ResultSet rs) throws SQLException {
-        UUID opId = UUID.fromString(rs.getString("op_id"));
-        OperationType opType = OperationType.valueOf(rs.getString("op_type"));
-        Money amount = Money.ofCents(rs.getLong("amount"));
-        LocalDate operationDate = LocalDate.parse(rs.getString("operation_date"));
+        String rowId = rs.getString("op_id");
+        String opTypeValue = rs.getString("op_type");
+        try {
+            UUID opId = UUID.fromString(rs.getString("op_id"));
+            OperationType opType = OperationType.valueOf(rs.getString("op_type"));
+            Money amount = Money.ofCents(rs.getLong("amount"));
+            LocalDate operationDate = LocalDate.parse(rs.getString("operation_date"));
 
-        String statusStr = rs.getString("status");
-        OperationStatus status = statusStr != null ? OperationStatus.valueOf(statusStr) : null;
+            String statusStr = rs.getString("status");
+            OperationStatus status = statusStr != null ? OperationStatus.valueOf(statusStr) : null;
 
-        String cancelledAtStr = rs.getString("cancelled_at");
-        Instant cancelledAt = cancelledAtStr != null ? Instant.parse(cancelledAtStr) : null;
+            String cancelledAtStr = rs.getString("cancelled_at");
+            Instant cancelledAt = cancelledAtStr != null ? Instant.parse(cancelledAtStr) : null;
 
-        String accountIdStr = rs.getString("account_id");
-        AccountSummary account = accountIdStr != null
-            ? new AccountSummary(UUID.fromString(accountIdStr), rs.getString("account_name"))
-            : null;
+            String accountIdStr = rs.getString("account_id");
+            AccountSummary account = accountIdStr != null
+                ? new AccountSummary(UUID.fromString(accountIdStr), rs.getString("account_name"))
+                : null;
 
-        String categoryIdStr = rs.getString("category_id");
-        CategorySummary category = categoryIdStr != null
-            ? new CategorySummary(UUID.fromString(categoryIdStr), rs.getString("category_name"))
-            : null;
+            String categoryIdStr = rs.getString("category_id");
+            CategorySummary category = categoryIdStr != null
+                ? new CategorySummary(UUID.fromString(categoryIdStr), rs.getString("category_name"))
+                : null;
 
-        String sourceAccountIdStr = rs.getString("source_account_id");
-        TransferDetails transfer = sourceAccountIdStr != null
-            ? new TransferDetails(
-                new AccountSummary(UUID.fromString(sourceAccountIdStr), rs.getString("source_account_name")),
-                new AccountSummary(UUID.fromString(rs.getString("target_account_id")), rs.getString("target_account_name"))
-            )
-            : null;
+            String sourceAccountIdStr = rs.getString("source_account_id");
+            TransferDetails transfer = sourceAccountIdStr != null
+                ? new TransferDetails(
+                    new AccountSummary(UUID.fromString(sourceAccountIdStr), rs.getString("source_account_name")),
+                    new AccountSummary(UUID.fromString(rs.getString("target_account_id")), rs.getString("target_account_name"))
+                )
+                : null;
 
-        return new FinancialOperationDetails(
-            opId, opType, amount, operationDate, status, cancelledAt, account, category, transfer
-        );
+            return new FinancialOperationDetails(
+                opId, opType, amount, operationDate, status, cancelledAt, account, category, transfer
+            );
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("financial operations (" + opTypeValue + ")", rowId, e);
+        }
     }
 }
