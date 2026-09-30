@@ -223,4 +223,270 @@ class DomainModelTest {
             assertFalse(method.getName().equals("categoryId"));
         }
     }
+
+    @Test
+    void incomeRejectsInactiveAccount() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Salary", CategoryType.INCOME);
+        account.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Income.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Account must be active", exception.getMessage());
+    }
+
+    @Test
+    void incomeRejectsInactiveCategory() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Salary", CategoryType.INCOME);
+        category.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Income.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.CATEGORY_INACTIVE, exception.code());
+        assertEquals("Category must be active", exception.getMessage());
+    }
+
+    @Test
+    void incomeReportsInactiveAccountBeforeInactiveCategory() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Salary", CategoryType.INCOME);
+        account.deactivate();
+        category.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Income.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+    }
+
+    @Test
+    void incomeAcceptsReactivatedAccountAndCategory() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Salary", CategoryType.INCOME);
+        account.deactivate();
+        category.deactivate();
+        account.activate();
+        category.activate();
+
+        Income income = Income.register(account, category, Money.ofCents(1), OPERATION_DATE);
+
+        assertEquals(OperationStatus.ACTIVE, income.status());
+    }
+
+    @Test
+    void incomeRejectsWrongCategoryTypeBeforeInactiveReferences() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category wrongType = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.deactivate();
+        wrongType.deactivate();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> Income.register(account, wrongType, Money.ofCents(1), OPERATION_DATE));
+    }
+
+    @Test
+    void incomeRejectsUserMismatchBeforeInactiveReferences() {
+        Account account = new Account(UUID.randomUUID(), "Checking");
+        Category category = new Category(UUID.randomUUID(), "Salary", CategoryType.INCOME);
+        account.deactivate();
+        category.deactivate();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> Income.register(account, category, Money.ofCents(1), OPERATION_DATE));
+    }
+
+    @Test
+    void expenseRejectsInactiveAccount() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.credit(Money.ofCents(1000));
+        account.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Expense.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Account must be active", exception.getMessage());
+    }
+
+    @Test
+    void expenseRejectsInactiveCategory() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.credit(Money.ofCents(1000));
+        category.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Expense.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.CATEGORY_INACTIVE, exception.code());
+        assertEquals("Category must be active", exception.getMessage());
+    }
+
+    @Test
+    void expenseReportsInactiveAccountBeforeInactiveCategory() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.credit(Money.ofCents(1000));
+        account.deactivate();
+        category.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Expense.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+    }
+
+    @Test
+    void expenseReportsInactiveAccountBeforeInsufficientBalance() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Expense.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+    }
+
+    @Test
+    void expenseReportsInactiveCategoryBeforeInsufficientBalance() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        category.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Expense.register(account, category, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.CATEGORY_INACTIVE, exception.code());
+    }
+
+    @Test
+    void expenseAcceptsReactivatedAccountAndCategory() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.credit(Money.ofCents(1000));
+        account.deactivate();
+        category.deactivate();
+        account.activate();
+        category.activate();
+
+        Expense expense = Expense.register(account, category, Money.ofCents(1), OPERATION_DATE);
+
+        assertEquals(OperationStatus.ACTIVE, expense.status());
+    }
+
+    @Test
+    void expenseRejectsWrongCategoryTypeBeforeInactiveReferences() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category wrongType = new Category(userId, "Salary", CategoryType.INCOME);
+        account.deactivate();
+        wrongType.deactivate();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> Expense.register(account, wrongType, Money.ofCents(1), OPERATION_DATE));
+    }
+
+    @Test
+    void expenseRejectsUserMismatchBeforeInactiveReferences() {
+        Account account = new Account(UUID.randomUUID(), "Checking");
+        Category category = new Category(UUID.randomUUID(), "Food", CategoryType.EXPENSE);
+        account.deactivate();
+        category.deactivate();
+
+        assertThrows(IllegalArgumentException.class,
+            () -> Expense.register(account, category, Money.ofCents(1), OPERATION_DATE));
+    }
+
+    @Test
+    void incomeEnsureCancellableDoesNothingWhenActive() {
+        Income income = new Income(UUID.randomUUID(), Money.ofCents(1), OPERATION_DATE,
+            UUID.randomUUID(), UUID.randomUUID());
+
+        income.ensureCancellable();
+
+        assertEquals(OperationStatus.ACTIVE, income.status());
+    }
+
+    @Test
+    void incomeEnsureCancellableThrowsWhenCancelled() {
+        Income income = new Income(UUID.randomUUID(), Money.ofCents(1), OPERATION_DATE,
+            UUID.randomUUID(), UUID.randomUUID());
+        income.cancel();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            income::ensureCancellable);
+
+        assertEquals(BusinessRuleCode.OPERATION_ALREADY_CANCELLED, exception.code());
+        assertEquals("Income operation is already cancelled", exception.getMessage());
+        assertEquals(OperationStatus.CANCELLED, income.status());
+    }
+
+    @Test
+    void incomeCannotBeCancelledTwice() {
+        Income income = new Income(UUID.randomUUID(), Money.ofCents(1), OPERATION_DATE,
+            UUID.randomUUID(), UUID.randomUUID());
+        income.cancel();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            income::cancel);
+
+        assertEquals(BusinessRuleCode.OPERATION_ALREADY_CANCELLED, exception.code());
+        assertEquals("Income operation is already cancelled", exception.getMessage());
+        assertEquals(OperationStatus.CANCELLED, income.status());
+    }
+
+    @Test
+    void expenseEnsureCancellableDoesNothingWhenActive() {
+        Expense expense = new Expense(UUID.randomUUID(), Money.ofCents(1), OPERATION_DATE,
+            UUID.randomUUID(), UUID.randomUUID());
+
+        expense.ensureCancellable();
+
+        assertEquals(OperationStatus.ACTIVE, expense.status());
+    }
+
+    @Test
+    void expenseEnsureCancellableThrowsWhenCancelled() {
+        Expense expense = new Expense(UUID.randomUUID(), Money.ofCents(1), OPERATION_DATE,
+            UUID.randomUUID(), UUID.randomUUID());
+        expense.cancel();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            expense::ensureCancellable);
+
+        assertEquals(BusinessRuleCode.OPERATION_ALREADY_CANCELLED, exception.code());
+        assertEquals("Expense operation is already cancelled", exception.getMessage());
+        assertEquals(OperationStatus.CANCELLED, expense.status());
+    }
+
+    @Test
+    void expenseCannotBeCancelledTwice() {
+        Expense expense = new Expense(UUID.randomUUID(), Money.ofCents(1), OPERATION_DATE,
+            UUID.randomUUID(), UUID.randomUUID());
+        expense.cancel();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            expense::cancel);
+
+        assertEquals(BusinessRuleCode.OPERATION_ALREADY_CANCELLED, exception.code());
+        assertEquals("Expense operation is already cancelled", exception.getMessage());
+        assertEquals(OperationStatus.CANCELLED, expense.status());
+    }
 }

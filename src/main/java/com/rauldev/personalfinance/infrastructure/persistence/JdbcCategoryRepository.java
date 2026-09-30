@@ -10,13 +10,20 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.rauldev.personalfinance.application.ApplicationConstants;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Category;
 import com.rauldev.personalfinance.domain.CategoryStatus;
 import com.rauldev.personalfinance.domain.CategoryType;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
 
 public final class JdbcCategoryRepository implements CategoryRepository {
+    // Matches SQLite's "UNIQUE constraint failed: categories.user_id, categories.name" message for the
+    // UNIQUE (user_id, name) constraint in schema.sql. Changing that constraint requires updating this value.
+    private static final String DUPLICATE_NAME_CONSTRAINT_COLUMNS = "categories.user_id, categories.name";
+
     private final TransactionConnectionHolder connectionHolder;
 
     public JdbcCategoryRepository(TransactionConnectionHolder connectionHolder) {
@@ -37,6 +44,10 @@ public final class JdbcCategoryRepository implements CategoryRepository {
             statement.setString(5, category.status().name());
             statement.executeUpdate();
         } catch (SQLException e) {
+            if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
+                throw new BusinessRuleViolationException(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS,
+                    ApplicationConstants.CATEGORY_NAME_ALREADY_EXISTS_MESSAGE, e);
+            }
             throw new RuntimeException("Failed to create category", e);
         }
 
@@ -133,6 +144,10 @@ public final class JdbcCategoryRepository implements CategoryRepository {
             statement.setString(3, category.id().toString());
             statement.executeUpdate();
         } catch (SQLException e) {
+            if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
+                throw new BusinessRuleViolationException(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS,
+                    ApplicationConstants.CATEGORY_NAME_ALREADY_EXISTS_MESSAGE, e);
+            }
             throw new RuntimeException("Failed to update category", e);
         }
 

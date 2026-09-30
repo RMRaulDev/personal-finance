@@ -15,6 +15,12 @@ public final class BusinessRuleViolationException extends RuntimeException {
         this.code = Objects.requireNonNull(code, "Business rule code cannot be null");
     }
 
+    public BusinessRuleViolationException(BusinessRuleCode code, String message, Throwable cause) {
+        super(Objects.requireNonNull(message, "Business rule message cannot be null"),
+            Objects.requireNonNull(cause, "Business rule cause cannot be null"));
+        this.code = Objects.requireNonNull(code, "Business rule code cannot be null");
+    }
+
     public BusinessRuleCode code() {
         return code;
     }

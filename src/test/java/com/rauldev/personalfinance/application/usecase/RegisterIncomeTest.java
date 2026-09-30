@@ -18,6 +18,8 @@ import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Category;
 import com.rauldev.personalfinance.domain.CategoryType;
 import com.rauldev.personalfinance.domain.Income;
@@ -212,6 +214,84 @@ class RegisterIncomeTest {
         assertEquals(1, categoryRepository.findCalls);
         assertEquals(0, incomeRepository.createCalls);
         assertEquals(0, accountRepository.updateCalls);
+    }
+
+    @Test
+    void execute_shouldPropagateDomainExceptionWhenAccountIsInactive() {
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+
+        Account account = new Account(accountId, userId, "Checking");
+        Category category = new Category(categoryId, userId, "Salary", CategoryType.INCOME);
+        account.deactivate();
+
+        RecordingAccountRepository accountRepository = new RecordingAccountRepository(Optional.of(account));
+        RecordingCategoryRepository categoryRepository = new RecordingCategoryRepository(Optional.of(category));
+        RecordingIncomeRepository incomeRepository = new RecordingIncomeRepository();
+        RecordingTransactionManager transactionManager = new RecordingTransactionManager();
+
+        RegisterIncome registerIncome = new RegisterIncome(
+            accountRepository,
+            categoryRepository,
+            incomeRepository,
+            transactionManager
+        );
+
+        RegisterIncomeCommand command = new RegisterIncomeCommand(
+            userId,
+            accountId,
+            categoryId,
+            Money.ofCents(100),
+            OPERATION_DATE
+        );
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerIncome.execute(command));
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Account must be active", exception.getMessage());
+        assertEquals(0, incomeRepository.createCalls);
+        assertEquals(0, accountRepository.updateCalls);
+        assertEquals(Money.ofCents(0), account.balance());
+    }
+
+    @Test
+    void execute_shouldPropagateDomainExceptionWhenCategoryIsInactive() {
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+
+        Account account = new Account(accountId, userId, "Checking");
+        Category category = new Category(categoryId, userId, "Salary", CategoryType.INCOME);
+        category.deactivate();
+
+        RecordingAccountRepository accountRepository = new RecordingAccountRepository(Optional.of(account));
+        RecordingCategoryRepository categoryRepository = new RecordingCategoryRepository(Optional.of(category));
+        RecordingIncomeRepository incomeRepository = new RecordingIncomeRepository();
+        RecordingTransactionManager transactionManager = new RecordingTransactionManager();
+
+        RegisterIncome registerIncome = new RegisterIncome(
+            accountRepository,
+            categoryRepository,
+            incomeRepository,
+            transactionManager
+        );
+
+        RegisterIncomeCommand command = new RegisterIncomeCommand(
+            userId,
+            accountId,
+            categoryId,
+            Money.ofCents(100),
+            OPERATION_DATE
+        );
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerIncome.execute(command));
+        assertEquals(BusinessRuleCode.CATEGORY_INACTIVE, exception.code());
+        assertEquals("Category must be active", exception.getMessage());
+        assertEquals(0, incomeRepository.createCalls);
+        assertEquals(0, accountRepository.updateCalls);
+        assertEquals(Money.ofCents(0), account.balance());
     }
 
     @Test

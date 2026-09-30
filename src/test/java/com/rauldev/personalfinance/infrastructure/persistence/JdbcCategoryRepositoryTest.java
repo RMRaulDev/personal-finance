@@ -19,6 +19,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import org.sqlite.SQLiteException;
+
+import com.rauldev.personalfinance.application.ApplicationConstants;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Category;
 import com.rauldev.personalfinance.domain.CategoryStatus;
 import com.rauldev.personalfinance.domain.CategoryType;
@@ -171,6 +176,84 @@ class JdbcCategoryRepositoryTest {
 
         assertThrows(RuntimeException.class, () -> transactionManager.execute(
             () -> categoryRepository.create(new Category(USER_ID_A, "Salary", CategoryType.INCOME))));
+    }
+
+    @Test
+    void createCategoryWithDuplicateUserIdAndNameThrowsBusinessRuleViolation() {
+        transactionManager.execute(() -> categoryRepository.create(new Category(USER_ID_A, "Duplicated", CategoryType.INCOME)));
+
+        BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
+            () -> transactionManager.execute(() -> categoryRepository.create(new Category(USER_ID_A, "Duplicated", CategoryType.INCOME))));
+
+        assertEquals(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS, ex.code());
+        assertEquals(ApplicationConstants.CATEGORY_NAME_ALREADY_EXISTS_MESSAGE, ex.getMessage());
+        assertInstanceOf(SQLiteException.class, ex.getCause());
+    }
+
+    @Test
+    void createCategoryWithDuplicateNameRollsBackTheTransaction() {
+        assertThrows(BusinessRuleViolationException.class, () -> transactionManager.execute(() -> {
+            categoryRepository.create(new Category(USER_ID_A, "Other", CategoryType.INCOME));
+            categoryRepository.create(new Category(USER_ID_A, "Duplicated", CategoryType.INCOME));
+            return categoryRepository.create(new Category(USER_ID_A, "Duplicated", CategoryType.INCOME));
+        }));
+
+        assertFalse(transactionManager.execute(() -> categoryRepository.existsByUserIdAndName(USER_ID_A, "Other")));
+        assertFalse(transactionManager.execute(() -> categoryRepository.existsByUserIdAndName(USER_ID_A, "Duplicated")));
+    }
+
+    @Test
+    void updateCategoryRenamingToAnotherRowsNameThrowsBusinessRuleViolation() {
+        UUID firstId = UUID.randomUUID();
+        transactionManager.execute(() -> categoryRepository.create(new Category(firstId, USER_ID_A, "First", CategoryType.INCOME)));
+        transactionManager.execute(() -> categoryRepository.create(new Category(USER_ID_A, "Second", CategoryType.INCOME)));
+
+        BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
+            () -> transactionManager.execute(() -> {
+                var category = categoryRepository.findById(firstId).orElseThrow();
+                category.rename("Second");
+                return categoryRepository.update(category);
+            }));
+
+        assertEquals(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS, ex.code());
+        assertEquals(ApplicationConstants.CATEGORY_NAME_ALREADY_EXISTS_MESSAGE, ex.getMessage());
+        assertInstanceOf(SQLiteException.class, ex.getCause());
+        assertEquals("First", transactionManager.execute(() -> categoryRepository.findById(firstId)).orElseThrow().name());
+    }
+
+    @Test
+    void createsSameNameForDifferentUsers() {
+        UUID idA = UUID.randomUUID();
+        UUID idB = UUID.randomUUID();
+
+        transactionManager.execute(() -> categoryRepository.create(new Category(idA, USER_ID_A, "Shared", CategoryType.INCOME)));
+        transactionManager.execute(() -> categoryRepository.create(new Category(idB, USER_ID_B, "Shared", CategoryType.INCOME)));
+
+        assertEquals(USER_ID_A, transactionManager.execute(() -> categoryRepository.findById(idA)).orElseThrow().userId());
+        assertEquals(USER_ID_B, transactionManager.execute(() -> categoryRepository.findById(idB)).orElseThrow().userId());
+    }
+
+    @Test
+    void createCategoryWithDuplicateIdStillFailsWithGenericRuntimeException() {
+        UUID id = UUID.randomUUID();
+        transactionManager.execute(() -> categoryRepository.create(new Category(id, USER_ID_A, "One", CategoryType.INCOME)));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+            () -> transactionManager.execute(() -> categoryRepository.create(new Category(id, USER_ID_A, "Two", CategoryType.INCOME))));
+
+        assertFalse(ex instanceof BusinessRuleViolationException);
+        assertEquals("Failed to create category", ex.getMessage());
+        assertInstanceOf(SQLiteException.class, ex.getCause());
+    }
+
+    @Test
+    void createCategoryWithUnknownUserStillFailsWithGenericRuntimeException() {
+        RuntimeException ex = assertThrows(RuntimeException.class,
+            () -> transactionManager.execute(() -> categoryRepository.create(new Category(UUID.randomUUID(), "Orphan", CategoryType.INCOME))));
+
+        assertFalse(ex instanceof BusinessRuleViolationException);
+        assertEquals("Failed to create category", ex.getMessage());
+        assertInstanceOf(SQLiteException.class, ex.getCause());
     }
 
     @Test

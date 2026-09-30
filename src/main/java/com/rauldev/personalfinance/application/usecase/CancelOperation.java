@@ -12,11 +12,8 @@ import com.rauldev.personalfinance.application.port.out.IncomeOperationRepositor
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
-import com.rauldev.personalfinance.domain.BusinessRuleCode;
-import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Expense;
 import com.rauldev.personalfinance.domain.Income;
-import com.rauldev.personalfinance.domain.OperationStatus;
 import com.rauldev.personalfinance.domain.Reversal;
 
 public final class CancelOperation {
@@ -71,10 +68,7 @@ public final class CancelOperation {
     }
 
     private UUID cancelIncome(Income income, UUID userId) {
-        if (income.status() == OperationStatus.CANCELLED) {
-            throw new BusinessRuleViolationException(BusinessRuleCode.OPERATION_ALREADY_CANCELLED,
-                "Income operation is already cancelled");
-        }
+        income.ensureCancellable();
 
         Account account = accountRepository.findByIdAndUserId(income.accountId(), userId)
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -92,10 +86,7 @@ public final class CancelOperation {
     }
 
     private UUID cancelExpense(Expense expense, UUID userId) {
-        if (expense.status() == OperationStatus.CANCELLED) {
-            throw new BusinessRuleViolationException(BusinessRuleCode.OPERATION_ALREADY_CANCELLED,
-                "Expense operation is already cancelled");
-        }
+        expense.ensureCancellable();
 
         Account account = accountRepository.findByIdAndUserId(expense.accountId(), userId)
             .orElseThrow(() -> new ResourceNotFoundException(

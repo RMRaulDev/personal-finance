@@ -7,6 +7,7 @@ package com.rauldev.personalfinance.domain;
 public enum BusinessRuleCode {
     INSUFFICIENT_BALANCE,
     ACCOUNT_INACTIVE,
+    CATEGORY_INACTIVE,
     OPERATION_ALREADY_CANCELLED,
     ACCOUNT_NAME_ALREADY_EXISTS,
     CATEGORY_NAME_ALREADY_EXISTS

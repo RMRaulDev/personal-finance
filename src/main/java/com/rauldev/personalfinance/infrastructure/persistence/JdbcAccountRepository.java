@@ -10,13 +10,20 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.rauldev.personalfinance.application.ApplicationConstants;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Account;
 import com.rauldev.personalfinance.domain.AccountStatus;
 import com.rauldev.personalfinance.domain.Money;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
 
 public final class JdbcAccountRepository implements AccountRepository {
+    // Matches SQLite's "UNIQUE constraint failed: accounts.user_id, accounts.name" message for the
+    // UNIQUE (user_id, name) constraint in schema.sql. Changing that constraint requires updating this value.
+    private static final String DUPLICATE_NAME_CONSTRAINT_COLUMNS = "accounts.user_id, accounts.name";
+
     private final TransactionConnectionHolder connectionHolder;
 
     public JdbcAccountRepository(TransactionConnectionHolder connectionHolder) {
@@ -37,6 +44,10 @@ public final class JdbcAccountRepository implements AccountRepository {
             statement.setString(5, account.status().name());
             statement.executeUpdate();
         } catch (SQLException e) {
+            if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
+                throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_NAME_ALREADY_EXISTS,
+                    ApplicationConstants.ACCOUNT_NAME_ALREADY_EXISTS_MESSAGE, e);
+            }
             throw new RuntimeException("Failed to create account", e);
         }
 
@@ -134,6 +145,10 @@ public final class JdbcAccountRepository implements AccountRepository {
             statement.setString(4, account.id().toString());
             statement.executeUpdate();
         } catch (SQLException e) {
+            if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
+                throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_NAME_ALREADY_EXISTS,
+                    ApplicationConstants.ACCOUNT_NAME_ALREADY_EXISTS_MESSAGE, e);
+            }
             throw new RuntimeException("Failed to update account", e);
         }
 
