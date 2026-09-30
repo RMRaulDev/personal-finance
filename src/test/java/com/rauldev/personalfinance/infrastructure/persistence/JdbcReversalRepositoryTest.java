@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -233,6 +234,30 @@ class JdbcReversalRepositoryTest {
     void requiresActiveTransactionForRepositoryOperations() {
         assertThrows(IllegalStateException.class,
             () -> reversalRepository.findById(UUID.randomUUID()));
+    }
+
+    @Test
+    void failsWithCorruptedPersistedDataWhenOriginalOperationStatusIsInvalid() throws SQLException {
+        UUID reversalId = UUID.randomUUID();
+        UUID incomeId = UUID.randomUUID();
+        insertRawRow("INSERT INTO income_operations (id, account_id, category_id, amount, operation_date, status) "
+            + "VALUES ('" + incomeId + "', '" + ACCOUNT_ID_A + "', '" + CATEGORY_INCOME_ID + "', 100, '2026-08-20', 'BOGUS')");
+        insertRawRow("INSERT INTO reversals (id, original_operation_id, cancelled_at) "
+            + "VALUES ('" + reversalId + "', '" + incomeId + "', '2026-08-21T10:00:00Z')");
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class,
+            () -> transactionManager.execute(() -> reversalRepository.findById(reversalId)));
+
+        assertTrue(ex.getMessage().contains("reversals"));
+        assertTrue(ex.getMessage().contains(reversalId.toString()));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    private void insertRawRow(String sql) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void initializeSchema(Connection connection) throws Exception {

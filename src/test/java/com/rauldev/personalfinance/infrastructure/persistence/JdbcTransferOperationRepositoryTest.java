@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -224,6 +225,25 @@ class JdbcTransferOperationRepositoryTest {
     void requiresActiveTransactionForRepositoryOperations() {
         assertThrows(IllegalStateException.class,
             () -> transferOperationRepository.findById(UUID.randomUUID()));
+    }
+
+    @Test
+    void failsWithCorruptedPersistedDataWhenTransferDateIsUnparseable() throws SQLException {
+        UUID rowId = UUID.randomUUID();
+        insertRawRow("INSERT INTO transfer_operations (id, source_account_id, target_account_id, amount, operation_date) VALUES ('" + rowId + "', '" + ACCOUNT_ID_A1 + "', '" + ACCOUNT_ID_A2 + "', 100, 'not-a-date')");
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class, () -> transactionManager.execute(() -> transferOperationRepository.findById(rowId)));
+
+        assertTrue(ex.getMessage().contains("transfer_operations"));
+        assertTrue(ex.getMessage().contains(rowId.toString()));
+        assertInstanceOf(java.time.format.DateTimeParseException.class, ex.getCause());
+    }
+
+    private void insertRawRow(String sql) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void initializeSchema(Connection connection) throws Exception {

@@ -141,22 +141,27 @@ public final class JdbcAccountRepository implements AccountRepository {
     }
 
     private static Account mapRow(ResultSet resultSet) throws SQLException {
-        UUID id = UUID.fromString(resultSet.getString("id"));
-        UUID userId = UUID.fromString(resultSet.getString("user_id"));
-        String name = resultSet.getString("name");
-        Account account = new Account(id, userId, name);
+        String rowId = resultSet.getString("id");
+        try {
+            UUID id = UUID.fromString(resultSet.getString("id"));
+            UUID userId = UUID.fromString(resultSet.getString("user_id"));
+            String name = resultSet.getString("name");
+            Account account = new Account(id, userId, name);
 
-        Money balance = Money.ofCents(resultSet.getLong("balance"));
-        if (balance.isPositive()) {
-            account.credit(balance);
+            Money balance = Money.ofCents(resultSet.getLong("balance"));
+            if (balance.isPositive()) {
+                account.credit(balance);
+            }
+
+            AccountStatus status = AccountStatus.valueOf(resultSet.getString("status"));
+            if (status == AccountStatus.INACTIVE) {
+                account.deactivate();
+            }
+
+            return account;
+        } catch (RuntimeException e) {
+            throw new CorruptedPersistedDataException("accounts", rowId, e);
         }
-
-        AccountStatus status = AccountStatus.valueOf(resultSet.getString("status"));
-        if (status == AccountStatus.INACTIVE) {
-            account.deactivate();
-        }
-
-        return account;
     }
 
     private static long toCents(Money money) {

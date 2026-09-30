@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -256,6 +257,25 @@ class JdbcExpenseOperationRepositoryTest {
     void requiresActiveTransactionForRepositoryOperations() {
         assertThrows(IllegalStateException.class,
             () -> expenseOperationRepository.findById(UUID.randomUUID()));
+    }
+
+    @Test
+    void failsWithCorruptedPersistedDataWhenExpenseStatusIsInvalid() throws SQLException {
+        UUID rowId = UUID.randomUUID();
+        insertRawRow("INSERT INTO expense_operations (id, account_id, category_id, amount, operation_date, status) VALUES ('" + rowId + "', '" + ACCOUNT_ID_A + "', '" + CATEGORY_ID_A + "', 100, '2026-08-20', 'BOGUS')");
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class, () -> transactionManager.execute(() -> expenseOperationRepository.findById(rowId)));
+
+        assertTrue(ex.getMessage().contains("expense_operations"));
+        assertTrue(ex.getMessage().contains(rowId.toString()));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    private void insertRawRow(String sql) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private void initializeSchema(Connection connection) throws Exception {
