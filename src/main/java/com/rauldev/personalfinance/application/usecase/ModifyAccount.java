@@ -3,6 +3,7 @@ package com.rauldev.personalfinance.application.usecase;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.rauldev.personalfinance.application.ApplicationConstants;
 import com.rauldev.personalfinance.application.exception.ResourceNotFoundException;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
@@ -32,7 +33,7 @@ public final class ModifyAccount {
 
             if (accountRepository.existsByUserIdAndNameAndIdNot(command.userId(), command.name(), command.accountId())) {
                 throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_NAME_ALREADY_EXISTS,
-                    "An account with the same name already exists for this user");
+                    ApplicationConstants.ACCOUNT_NAME_ALREADY_EXISTS_MESSAGE);
             }
 
             account.rename(command.name());

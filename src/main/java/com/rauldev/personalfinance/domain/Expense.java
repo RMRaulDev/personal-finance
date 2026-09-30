@@ -41,7 +41,15 @@ public final class Expense extends FinancialOperation {
         return status;
     }
 
+    public void ensureCancellable() {
+        if (status == OperationStatus.CANCELLED) {
+            throw new BusinessRuleViolationException(BusinessRuleCode.OPERATION_ALREADY_CANCELLED,
+                "Expense operation is already cancelled");
+        }
+    }
+
     public void cancel() {
+        ensureCancellable();
         status = OperationStatus.CANCELLED;
     }
 
@@ -53,6 +61,12 @@ public final class Expense extends FinancialOperation {
         }
         if (category.type() != CategoryType.EXPENSE) {
             throw new IllegalArgumentException("Category type is not valid for an expense");
+        }
+        if (account.status() != AccountStatus.ACTIVE) {
+            throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_INACTIVE, "Account must be active");
+        }
+        if (category.status() != CategoryStatus.ACTIVE) {
+            throw new BusinessRuleViolationException(BusinessRuleCode.CATEGORY_INACTIVE, "Category must be active");
         }
     }
 }

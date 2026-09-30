@@ -183,6 +183,29 @@ class JdbcIncomeOperationRepositoryTest {
     }
 
     @Test
+    void loadsOperationWhenAccountAndCategoryAreInactive() {
+        UUID operationId = UUID.randomUUID();
+        transactionManager.execute(() -> incomeOperationRepository.create(
+            new Income(operationId, USER_ID_A, Money.of("10.00"), LocalDate.of(2026, 8, 20), ACCOUNT_ID_A, CATEGORY_ID_A)));
+
+        transactionManager.execute(() -> {
+            Account account = accountRepository.findById(ACCOUNT_ID_A).orElseThrow();
+            account.deactivate();
+            accountRepository.update(account);
+            Category category = categoryRepository.findById(CATEGORY_ID_A).orElseThrow();
+            category.deactivate();
+            categoryRepository.update(category);
+        });
+
+        Income found = transactionManager.execute(() -> incomeOperationRepository.findById(operationId).orElseThrow());
+
+        assertEquals(operationId, found.id());
+        assertEquals(OperationStatus.ACTIVE, found.status());
+        assertEquals(ACCOUNT_ID_A, found.accountId());
+        assertEquals(CATEGORY_ID_A, found.categoryId());
+    }
+
+    @Test
     void reconstructsCancelledStatusCorrectly() {
         UUID incomeId = UUID.randomUUID();
 

@@ -262,6 +262,86 @@ class RegisterExpenseTest {
     }
 
     @Test
+    void execute_shouldPropagateDomainExceptionWhenAccountIsInactive() {
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+
+        Account account = new Account(accountId, userId, "Checking");
+        account.credit(Money.ofCents(1000));
+        Category category = new Category(categoryId, userId, "Groceries", CategoryType.EXPENSE);
+        account.deactivate();
+
+        RecordingAccountRepository accountRepository = new RecordingAccountRepository(Optional.of(account));
+        RecordingCategoryRepository categoryRepository = new RecordingCategoryRepository(Optional.of(category));
+        RecordingExpenseRepository expenseRepository = new RecordingExpenseRepository();
+        RecordingTransactionManager transactionManager = new RecordingTransactionManager();
+
+        RegisterExpense registerExpense = new RegisterExpense(
+            accountRepository,
+            categoryRepository,
+            expenseRepository,
+            transactionManager
+        );
+
+        RegisterExpenseCommand command = new RegisterExpenseCommand(
+            userId,
+            accountId,
+            categoryId,
+            Money.ofCents(100),
+            OPERATION_DATE
+        );
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerExpense.execute(command));
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Account must be active", exception.getMessage());
+        assertEquals(0, expenseRepository.createCalls);
+        assertEquals(0, accountRepository.updateCalls);
+        assertEquals(Money.ofCents(1000), account.balance());
+    }
+
+    @Test
+    void execute_shouldPropagateDomainExceptionWhenCategoryIsInactive() {
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+
+        Account account = new Account(accountId, userId, "Checking");
+        account.credit(Money.ofCents(1000));
+        Category category = new Category(categoryId, userId, "Groceries", CategoryType.EXPENSE);
+        category.deactivate();
+
+        RecordingAccountRepository accountRepository = new RecordingAccountRepository(Optional.of(account));
+        RecordingCategoryRepository categoryRepository = new RecordingCategoryRepository(Optional.of(category));
+        RecordingExpenseRepository expenseRepository = new RecordingExpenseRepository();
+        RecordingTransactionManager transactionManager = new RecordingTransactionManager();
+
+        RegisterExpense registerExpense = new RegisterExpense(
+            accountRepository,
+            categoryRepository,
+            expenseRepository,
+            transactionManager
+        );
+
+        RegisterExpenseCommand command = new RegisterExpenseCommand(
+            userId,
+            accountId,
+            categoryId,
+            Money.ofCents(100),
+            OPERATION_DATE
+        );
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerExpense.execute(command));
+        assertEquals(BusinessRuleCode.CATEGORY_INACTIVE, exception.code());
+        assertEquals("Category must be active", exception.getMessage());
+        assertEquals(0, expenseRepository.createCalls);
+        assertEquals(0, accountRepository.updateCalls);
+        assertEquals(Money.ofCents(1000), account.balance());
+    }
+
+    @Test
     void execute_shouldUseTransactionManager() {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
