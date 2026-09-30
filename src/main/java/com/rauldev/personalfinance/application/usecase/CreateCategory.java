@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Category;
 
 public final class CreateCategory {
@@ -24,7 +26,8 @@ public final class CreateCategory {
 
         return transactionManager.execute(() -> {
             if (categoryRepository.existsByUserIdAndName(command.userId(), command.name())) {
-                throw new IllegalArgumentException("A category with the same name already exists for this user");
+                throw new BusinessRuleViolationException(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS,
+                    "A category with the same name already exists for this user");
             }
 
             Category category = new Category(command.userId(), command.name(), command.type());

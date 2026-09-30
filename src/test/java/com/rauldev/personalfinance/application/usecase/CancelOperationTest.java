@@ -22,6 +22,8 @@ import com.rauldev.personalfinance.application.port.out.IncomeOperationRepositor
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Expense;
 import com.rauldev.personalfinance.domain.Income;
 import com.rauldev.personalfinance.domain.Money;
@@ -194,7 +196,7 @@ class CancelOperationTest {
     }
 
     @Test
-    void execute_shouldThrowIllegalStateExceptionWhenIncomeIsAlreadyCancelled() {
+    void execute_shouldThrowBusinessRuleViolationExceptionWhenIncomeIsAlreadyCancelled() {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
@@ -221,7 +223,10 @@ class CancelOperationTest {
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
 
-        assertThrows(IllegalStateException.class, () -> cancelOperation.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> cancelOperation.execute(command));
+        assertEquals(BusinessRuleCode.OPERATION_ALREADY_CANCELLED, exception.code());
+        assertEquals("Income operation is already cancelled", exception.getMessage());
         assertTrue(accountRepository.findCalls.isEmpty());
         assertEquals(0, reversalRepository.createCalls);
         assertEquals(0, incomeRepository.updateCalls);
@@ -230,7 +235,7 @@ class CancelOperationTest {
     }
 
     @Test
-    void execute_shouldThrowIllegalStateExceptionWhenExpenseIsAlreadyCancelled() {
+    void execute_shouldThrowBusinessRuleViolationExceptionWhenExpenseIsAlreadyCancelled() {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
@@ -257,7 +262,10 @@ class CancelOperationTest {
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
 
-        assertThrows(IllegalStateException.class, () -> cancelOperation.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> cancelOperation.execute(command));
+        assertEquals(BusinessRuleCode.OPERATION_ALREADY_CANCELLED, exception.code());
+        assertEquals("Expense operation is already cancelled", exception.getMessage());
         assertTrue(accountRepository.findCalls.isEmpty());
         assertEquals(0, reversalRepository.createCalls);
         assertEquals(0, expenseRepository.updateCalls);
@@ -358,7 +366,10 @@ class CancelOperationTest {
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
 
-        assertThrows(IllegalStateException.class, () -> cancelOperation.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> cancelOperation.execute(command));
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, exception.code());
+        assertEquals("Account balance is insufficient", exception.getMessage());
         assertEquals(0, reversalRepository.createCalls);
         assertEquals(0, incomeRepository.updateCalls);
         assertTrue(accountRepository.updatedAccounts.isEmpty());

@@ -20,6 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
@@ -228,6 +230,35 @@ class JdbcTransactionManagerTest {
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    void test9_businessRuleViolationRollsBackAndPropagatesUnchanged() throws SQLException {
+        UUID userId = UUID.randomUUID();
+        BusinessRuleViolationException thrown = new BusinessRuleViolationException(
+            BusinessRuleCode.INSUFFICIENT_BALANCE, "Account balance is insufficient");
+
+        BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
+            () -> transactionManager.execute(() -> {
+                Connection conn = connectionHolder.get();
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate("INSERT INTO users (id) VALUES ('" + userId + "')");
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+                throw thrown;
+            }));
+
+        assertSame(thrown, ex);
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, ex.code());
+        assertFalse(connectionHolder.hasActiveTransaction());
+
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users WHERE id = '" + userId + "'")) {
+            assertTrue(rs.next());
+            assertEquals(0, rs.getInt(1));
         }
     }
 }

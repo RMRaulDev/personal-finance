@@ -40,7 +40,22 @@ class DomainModelTest {
         account.debit(Money.ofCents(400));
 
         assertEquals(Money.ofCents(600), account.balance());
-        assertThrows(IllegalStateException.class, () -> account.debit(Money.ofCents(601)));
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> account.debit(Money.ofCents(601)));
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, exception.code());
+        assertEquals("Account balance is insufficient", exception.getMessage());
+        assertEquals(Money.ofCents(600), account.balance());
+    }
+
+    @Test
+    void accountAllowsDebitEqualToBalance() {
+        Account account = new Account(UUID.randomUUID(), "Checking");
+        account.credit(Money.ofCents(1000));
+
+        account.debit(Money.ofCents(1000));
+
+        assertTrue(account.balance().isZero());
     }
 
     @Test
@@ -97,8 +112,22 @@ class DomainModelTest {
         assertEquals(OperationStatus.CANCELLED, income.status());
         assertThrows(IllegalArgumentException.class,
             () -> Expense.register(account, incomeCategory, Money.ofCents(1), OPERATION_DATE));
-        assertThrows(IllegalStateException.class,
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
             () -> Expense.register(account, expenseCategory, Money.ofCents(1), OPERATION_DATE));
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, exception.code());
+        assertEquals("Account balance is insufficient", exception.getMessage());
+    }
+
+    @Test
+    void expenseAllowsAmountEqualToAccountBalance() {
+        UUID userId = UUID.randomUUID();
+        Account account = new Account(userId, "Checking");
+        Category category = new Category(userId, "Food", CategoryType.EXPENSE);
+        account.credit(Money.ofCents(1000));
+
+        Expense expense = Expense.register(account, category, Money.ofCents(1000), OPERATION_DATE);
+
+        assertEquals(Money.ofCents(1000), expense.amount());
     }
 
     @Test
@@ -113,8 +142,52 @@ class DomainModelTest {
         assertEquals(target.id(), transfer.targetAccountId());
         assertThrows(IllegalArgumentException.class,
             () -> Transfer.register(source, source, Money.ofCents(1), OPERATION_DATE));
-        assertThrows(IllegalStateException.class,
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
             () -> Transfer.register(source, target, Money.ofCents(1001), OPERATION_DATE));
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, exception.code());
+        assertEquals("Source account balance is insufficient", exception.getMessage());
+    }
+
+    @Test
+    void transferAllowsAmountEqualToSourceBalance() {
+        UUID userId = UUID.randomUUID();
+        Account source = new Account(userId, "Checking");
+        Account target = new Account(userId, "Savings");
+        source.credit(Money.ofCents(1000));
+
+        Transfer transfer = Transfer.register(source, target, Money.ofCents(1000), OPERATION_DATE);
+
+        assertEquals(Money.ofCents(1000), transfer.amount());
+    }
+
+    @Test
+    void transferRejectsInactiveSourceAccount() {
+        UUID userId = UUID.randomUUID();
+        Account source = new Account(userId, "Checking");
+        Account target = new Account(userId, "Savings");
+        source.credit(Money.ofCents(1000));
+        source.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Transfer.register(source, target, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Both accounts must be active", exception.getMessage());
+    }
+
+    @Test
+    void transferRejectsInactiveTargetAccount() {
+        UUID userId = UUID.randomUUID();
+        Account source = new Account(userId, "Checking");
+        Account target = new Account(userId, "Savings");
+        source.credit(Money.ofCents(1000));
+        target.deactivate();
+
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> Transfer.register(source, target, Money.ofCents(1), OPERATION_DATE));
+
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Both accounts must be active", exception.getMessage());
     }
 
     @Test

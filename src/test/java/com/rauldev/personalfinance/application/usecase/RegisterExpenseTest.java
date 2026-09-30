@@ -18,6 +18,8 @@ import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Category;
 import com.rauldev.personalfinance.domain.CategoryType;
 import com.rauldev.personalfinance.domain.Money;
@@ -211,7 +213,10 @@ class RegisterExpenseTest {
             OPERATION_DATE
         );
 
-        assertThrows(IllegalStateException.class, () -> registerExpense.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerExpense.execute(command));
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, exception.code());
+        assertEquals("Account balance is insufficient", exception.getMessage());
         assertEquals(1, accountRepository.findCalls);
         assertEquals(1, categoryRepository.findCalls);
         assertEquals(0, expenseRepository.createCalls);

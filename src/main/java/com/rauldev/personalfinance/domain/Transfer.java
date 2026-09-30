@@ -31,10 +31,11 @@ public final class Transfer extends FinancialOperation {
             throw new IllegalArgumentException("Accounts must belong to the same user");
         }
         if (sourceAccount.status() != AccountStatus.ACTIVE || targetAccount.status() != AccountStatus.ACTIVE) {
-            throw new IllegalStateException("Both accounts must be active");
+            throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_INACTIVE, "Both accounts must be active");
         }
         if (sourceAccount.balance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Source account balance is insufficient");
+            throw new BusinessRuleViolationException(BusinessRuleCode.INSUFFICIENT_BALANCE,
+                "Source account balance is insufficient");
         }
         return new Transfer(sourceAccount.userId(), amount, operationDate,
             sourceAccount.id(), targetAccount.id());

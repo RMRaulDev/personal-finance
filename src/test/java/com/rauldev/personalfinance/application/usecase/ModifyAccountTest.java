@@ -16,6 +16,8 @@ import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
 import com.rauldev.personalfinance.domain.AccountStatus;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Money;
 
 class ModifyAccountTest {
@@ -80,7 +82,7 @@ class ModifyAccountTest {
     }
 
     @Test
-    void execute_shouldThrowIllegalArgumentExceptionWhenAnotherAccountUsesSameName() {
+    void execute_shouldThrowBusinessRuleViolationExceptionWhenAnotherAccountUsesSameName() {
         UUID userId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
         Account account = new Account(accountId, userId, "Checking");
@@ -90,8 +92,10 @@ class ModifyAccountTest {
 
         ModifyAccount modifyAccount = new ModifyAccount(accountRepository, transactionManager);
 
-        assertThrows(IllegalArgumentException.class,
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
             () -> modifyAccount.execute(new ModifyAccountCommand(userId, accountId, "Savings")));
+        assertEquals(BusinessRuleCode.ACCOUNT_NAME_ALREADY_EXISTS, exception.code());
+        assertEquals("An account with the same name already exists for this user", exception.getMessage());
 
         assertEquals(1, accountRepository.findCalls);
         assertEquals(1, accountRepository.duplicateCheckCalls);

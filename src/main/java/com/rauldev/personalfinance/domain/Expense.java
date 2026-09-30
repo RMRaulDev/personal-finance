@@ -23,7 +23,8 @@ public final class Expense extends FinancialOperation {
     public static Expense register(Account account, Category category, Money amount, LocalDate operationDate) {
         validateReferences(account, category);
         if (account.balance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Account balance is insufficient");
+            throw new BusinessRuleViolationException(BusinessRuleCode.INSUFFICIENT_BALANCE,
+                "Account balance is insufficient");
         }
         return new Expense(account.userId(), amount, operationDate, account.id(), category.id());
     }
