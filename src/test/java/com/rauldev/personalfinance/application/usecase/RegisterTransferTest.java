@@ -20,6 +20,8 @@ import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.port.out.TransferOperationRepository;
 import com.rauldev.personalfinance.domain.Account;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Money;
 import com.rauldev.personalfinance.domain.Transfer;
 
@@ -210,7 +212,10 @@ class RegisterTransferTest {
             OPERATION_DATE
         );
 
-        assertThrows(IllegalStateException.class, () -> registerTransfer.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerTransfer.execute(command));
+        assertEquals(BusinessRuleCode.INSUFFICIENT_BALANCE, exception.code());
+        assertEquals("Source account balance is insufficient", exception.getMessage());
         assertEquals(0, transferRepository.createCalls);
         assertTrue(accountRepository.updatedAccounts.isEmpty());
         assertEquals(Money.ofCents(2000), sourceAccount.balance());
@@ -249,7 +254,10 @@ class RegisterTransferTest {
             OPERATION_DATE
         );
 
-        assertThrows(IllegalStateException.class, () -> registerTransfer.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerTransfer.execute(command));
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Both accounts must be active", exception.getMessage());
         assertEquals(0, transferRepository.createCalls);
         assertTrue(accountRepository.updatedAccounts.isEmpty());
         assertEquals(Money.ofCents(5000), sourceAccount.balance());
@@ -288,7 +296,10 @@ class RegisterTransferTest {
             OPERATION_DATE
         );
 
-        assertThrows(IllegalStateException.class, () -> registerTransfer.execute(command));
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
+            () -> registerTransfer.execute(command));
+        assertEquals(BusinessRuleCode.ACCOUNT_INACTIVE, exception.code());
+        assertEquals("Both accounts must be active", exception.getMessage());
         assertEquals(0, transferRepository.createCalls);
         assertTrue(accountRepository.updatedAccounts.isEmpty());
         assertEquals(Money.ofCents(5000), sourceAccount.balance());

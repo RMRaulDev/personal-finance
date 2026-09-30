@@ -61,7 +61,8 @@ public final class Account {
     public void debit(Money amount) {
         Money debitAmount = requirePositive(amount);
         if (balance.compareTo(debitAmount) < 0) {
-            throw new IllegalStateException("Account balance is insufficient");
+            throw new BusinessRuleViolationException(BusinessRuleCode.INSUFFICIENT_BALANCE,
+                "Account balance is insufficient");
         }
         balance = balance.subtract(debitAmount);
     }

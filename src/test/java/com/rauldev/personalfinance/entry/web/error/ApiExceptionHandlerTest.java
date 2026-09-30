@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rauldev.personalfinance.application.exception.ResourceNotFoundException;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.infrastructure.persistence.CorruptedPersistedDataException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -60,6 +62,29 @@ class ApiExceptionHandlerTest {
         assertTrue(contentType(response).startsWith("application/problem+json"));
         assertTrue(response.body().contains("\"title\":\"Invalid request\""));
         assertTrue(response.body().contains("\"detail\":\"Amount must be positive\""));
+    }
+
+    @Test
+    void mapsBusinessRuleViolationExceptionToProblemDetail409WithCode() throws Exception {
+        HttpResponse<String> response = get("/test-errors/business-rule");
+
+        assertEquals(409, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+        assertTrue(response.body().contains("\"title\":\"Business rule violation\""));
+        assertTrue(response.body().contains("\"detail\":\"Account balance is insufficient\""));
+        assertTrue(response.body().contains("\"code\":\"INSUFFICIENT_BALANCE\""));
+    }
+
+    @Test
+    void infrastructureIllegalStateExceptionStillAnswers500GenericProblemDetail() throws Exception {
+        HttpResponse<String> response = get("/test-errors/nested-transaction");
+
+        assertEquals(500, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+        assertTrue(response.body().contains("\"title\":\"Internal server error\""));
+        assertTrue(response.body().contains("\"detail\":\"Unexpected error\""));
+        assertFalse(response.body().contains("Nested transactions"));
+        assertFalse(response.body().contains("\"code\""));
     }
 
     @Test
@@ -135,6 +160,17 @@ class ApiExceptionHandlerTest {
         @GetMapping("/test-errors/corrupted")
         String corrupted() {
             throw new CorruptedPersistedDataException("accounts", "row-1", new IllegalArgumentException(SENSITIVE));
+        }
+
+        @GetMapping("/test-errors/business-rule")
+        String businessRule() {
+            throw new BusinessRuleViolationException(BusinessRuleCode.INSUFFICIENT_BALANCE,
+                "Account balance is insufficient");
+        }
+
+        @GetMapping("/test-errors/nested-transaction")
+        String nestedTransaction() {
+            throw new IllegalStateException("Nested transactions are not supported");
         }
 
         @PostMapping("/test-errors/echo")

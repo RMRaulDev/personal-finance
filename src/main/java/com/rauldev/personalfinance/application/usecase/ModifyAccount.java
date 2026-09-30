@@ -7,6 +7,8 @@ import com.rauldev.personalfinance.application.exception.ResourceNotFoundExcepti
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 
 public final class ModifyAccount {
     private final AccountRepository accountRepository;
@@ -29,7 +31,8 @@ public final class ModifyAccount {
                     "Account not found for user: " + command.accountId()));
 
             if (accountRepository.existsByUserIdAndNameAndIdNot(command.userId(), command.name(), command.accountId())) {
-                throw new IllegalArgumentException("An account with the same name already exists for this user");
+                throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_NAME_ALREADY_EXISTS,
+                    "An account with the same name already exists for this user");
             }
 
             account.rename(command.name());

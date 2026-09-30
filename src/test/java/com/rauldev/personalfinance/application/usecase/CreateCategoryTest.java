@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Category;
 import com.rauldev.personalfinance.domain.CategoryStatus;
 import com.rauldev.personalfinance.domain.CategoryType;
@@ -42,7 +44,7 @@ class CreateCategoryTest {
     }
 
     @Test
-    void execute_shouldThrowIllegalArgumentExceptionWhenCategoryNameAlreadyExistsForUser() {
+    void execute_shouldThrowBusinessRuleViolationExceptionWhenCategoryNameAlreadyExistsForUser() {
         UUID userId = UUID.randomUUID();
         String categoryName = "Salary";
 
@@ -51,8 +53,10 @@ class CreateCategoryTest {
 
         CreateCategory createCategory = new CreateCategory(categoryRepository, transactionManager);
 
-        assertThrows(IllegalArgumentException.class,
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
             () -> createCategory.execute(new CreateCategoryCommand(userId, categoryName, CategoryType.INCOME)));
+        assertEquals(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS, exception.code());
+        assertEquals("A category with the same name already exists for this user", exception.getMessage());
 
         assertEquals(1, categoryRepository.existsCalls);
         assertEquals(0, categoryRepository.createCalls);
@@ -162,8 +166,10 @@ class CreateCategoryTest {
 
         CreateCategory createCategory = new CreateCategory(categoryRepository, transactionManager);
 
-        assertThrows(IllegalArgumentException.class,
+        BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class,
             () -> createCategory.execute(new CreateCategoryCommand(userId, "Salary", CategoryType.INCOME)));
+        assertEquals(BusinessRuleCode.CATEGORY_NAME_ALREADY_EXISTS, exception.code());
+        assertEquals("A category with the same name already exists for this user", exception.getMessage());
 
         assertEquals(1, categoryRepository.existsCalls);
         assertEquals(0, categoryRepository.createCalls);

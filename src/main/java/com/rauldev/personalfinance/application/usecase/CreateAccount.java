@@ -6,6 +6,8 @@ import java.util.UUID;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
+import com.rauldev.personalfinance.domain.BusinessRuleCode;
+import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 
 public final class CreateAccount {
     private final AccountRepository accountRepository;
@@ -24,7 +26,8 @@ public final class CreateAccount {
 
         return transactionManager.execute(() -> {
             if (accountRepository.existsByUserIdAndName(command.userId(), command.name())) {
-                throw new IllegalArgumentException("An account with the same name already exists for this user");
+                throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_NAME_ALREADY_EXISTS,
+                    "An account with the same name already exists for this user");
             }
 
             Account account = new Account(command.userId(), command.name());
