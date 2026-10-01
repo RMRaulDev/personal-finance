@@ -21,7 +21,8 @@ public final class Income extends FinancialOperation {
     }
 
     public static Income register(Account account, Category category, Money amount, LocalDate operationDate) {
-        validateReferences(account, category, CategoryType.INCOME);
+        OperationReferences.validate(account, category, CategoryType.INCOME,
+            "Category type is not valid for this operation");
         return new Income(account.userId(), amount, operationDate, account.id(), category.id());
     }
 
@@ -47,22 +48,5 @@ public final class Income extends FinancialOperation {
     public void cancel() {
         ensureCancellable();
         status = OperationStatus.CANCELLED;
-    }
-
-    private static void validateReferences(Account account, Category category, CategoryType expectedType) {
-        Objects.requireNonNull(account, "Account cannot be null");
-        Objects.requireNonNull(category, "Category cannot be null");
-        if (!account.userId().equals(category.userId())) {
-            throw new IllegalArgumentException("Account and category must belong to the same user");
-        }
-        if (category.type() != expectedType) {
-            throw new IllegalArgumentException("Category type is not valid for this operation");
-        }
-        if (account.status() != AccountStatus.ACTIVE) {
-            throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_INACTIVE, "Account must be active");
-        }
-        if (category.status() != CategoryStatus.ACTIVE) {
-            throw new BusinessRuleViolationException(BusinessRuleCode.CATEGORY_INACTIVE, "Category must be active");
-        }
     }
 }

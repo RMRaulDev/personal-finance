@@ -269,4 +269,31 @@ class MoneyTest {
         assertNotEquals(money, "100.00");
         assertNotEquals(money, null);
     }
+
+    @Test
+    @DisplayName("should multiply by zero and keep scale 2")
+    void multiplyByZero() {
+        Money result = Money.of("12.50").multiply(0);
+
+        assertEquals(new BigDecimal("0.00"), result.amount());
+        assertTrue(result.isZero());
+    }
+
+    @Test
+    @DisplayName("should multiply by a positive factor and keep scale 2")
+    void multiplyByPositiveFactor() {
+        Money result = Money.of("12.50").multiply(3);
+
+        assertEquals(new BigDecimal("37.50"), result.amount());
+        assertEquals(2, result.amount().scale());
+    }
+
+    @Test
+    @DisplayName("should reject a negative multiplication factor")
+    void multiplyByNegativeFactorThrows() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+            () -> Money.of("12.50").multiply(-1));
+
+        assertEquals("Multiplication factor cannot be negative", exception.getMessage());
+    }
 }

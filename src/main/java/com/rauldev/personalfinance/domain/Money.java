@@ -114,6 +114,20 @@ public final class Money {
     }
 
     /**
+     * Multiplies this Money by a non-negative factor.
+     *
+     * @param factor the number of times this amount is counted
+     * @return a new Money instance with the product, keeping scale 2
+     * @throws IllegalArgumentException if the factor is negative
+     */
+    public Money multiply(long factor) {
+        if (factor < 0) {
+            throw new IllegalArgumentException("Multiplication factor cannot be negative");
+        }
+        return new Money(amount.multiply(BigDecimal.valueOf(factor)));
+    }
+
+    /**
      * Checks if this Money is zero.
      *
      * @return true if the amount is zero, false otherwise
