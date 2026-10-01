@@ -25,8 +25,15 @@ import org.junit.jupiter.api.io.TempDir;
 import com.rauldev.personalfinance.domain.Account;
 import com.rauldev.personalfinance.domain.Category;
 import com.rauldev.personalfinance.domain.CategoryType;
+import com.rauldev.personalfinance.domain.Expense;
+import com.rauldev.personalfinance.domain.Frequency;
 import com.rauldev.personalfinance.domain.Income;
 import com.rauldev.personalfinance.domain.Money;
+import com.rauldev.personalfinance.domain.Obligation;
+import com.rauldev.personalfinance.domain.ObligationStatus;
+import com.rauldev.personalfinance.domain.OccurrenceResolution;
+import com.rauldev.personalfinance.domain.Recurrence;
+import com.rauldev.personalfinance.domain.ResolutionStatus;
 import com.rauldev.personalfinance.domain.User;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
@@ -43,6 +50,9 @@ class JdbcUserRepositoryTest {
     private JdbcAccountRepository accountRepository;
     private JdbcCategoryRepository categoryRepository;
     private JdbcIncomeOperationRepository incomeOperationRepository;
+    private JdbcExpenseOperationRepository expenseOperationRepository;
+    private JdbcObligationRepository obligationRepository;
+    private JdbcOccurrenceResolutionRepository resolutionRepository;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -55,6 +65,9 @@ class JdbcUserRepositoryTest {
         accountRepository = new JdbcAccountRepository(connectionHolder);
         categoryRepository = new JdbcCategoryRepository(connectionHolder);
         incomeOperationRepository = new JdbcIncomeOperationRepository(connectionHolder);
+        expenseOperationRepository = new JdbcExpenseOperationRepository(connectionHolder);
+        obligationRepository = new JdbcObligationRepository(connectionHolder);
+        resolutionRepository = new JdbcOccurrenceResolutionRepository(connectionHolder);
 
         try (Connection conn = connectionProvider.getConnection()) {
             initializeSchema(conn);
@@ -205,6 +218,152 @@ class JdbcUserRepositoryTest {
         assertTrue(userExists(user.id()));
         assertEquals(1, countByUser("accounts", user.id()));
         assertEquals(1, countByUser("categories", user.id()));
+    }
+
+    @Test
+    void deletingUserWithObligationAndSkippedResolutionAndNoOperationsDeletesEverything() throws Exception {
+        User user = new User(UUID.randomUUID());
+        User other = new User(UUID.randomUUID());
+        UUID obligationId = UUID.randomUUID();
+        UUID otherObligationId = UUID.randomUUID();
+        transactionManager.execute(() -> {
+            userRepository.create(user);
+            userRepository.create(other);
+            seedObligationWithSkippedResolution(user.id(), obligationId);
+            seedObligationWithSkippedResolution(other.id(), otherObligationId);
+        });
+
+        transactionManager.execute(() -> userRepository.deleteById(user.id()));
+
+        assertFalse(userExists(user.id()));
+        assertEquals(0, countByUser("accounts", user.id()));
+        assertEquals(0, countByUser("categories", user.id()));
+        assertEquals(0, countByUser("obligations", user.id()));
+        assertEquals(0, countWhere("occurrence_resolutions", "obligation_id = '" + obligationId + "'"));
+        assertTrue(userExists(other.id()));
+        assertEquals(1, countByUser("accounts", other.id()));
+        assertEquals(1, countByUser("categories", other.id()));
+        assertEquals(1, countByUser("obligations", other.id()));
+        assertEquals(1, countWhere("occurrence_resolutions", "obligation_id = '" + otherObligationId + "'"));
+    }
+
+    @Test
+    void failsToDeleteUserWithPaidResolutionAndRemovesNothing() throws Exception {
+        User user = new User(UUID.randomUUID());
+        UUID obligationId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        transactionManager.execute(() -> {
+            userRepository.create(user);
+            seedObligation(user.id(), obligationId);
+            expenseOperationRepository.create(new Expense(expenseId, user.id(), Money.of("10.00"),
+                LocalDate.of(2026, 9, 1), accountIdOf(obligationId), categoryIdOf(obligationId)));
+            resolutionRepository.create(new OccurrenceResolution(UUID.randomUUID(), obligationId,
+                LocalDate.of(2026, 9, 1), ResolutionStatus.PAID, expenseId, Instant.parse("2026-09-01T10:00:00Z")));
+        });
+
+        RuntimeException e = assertThrows(RuntimeException.class,
+            () -> transactionManager.execute(() -> userRepository.deleteById(user.id())));
+
+        assertEquals("Failed to delete user by id", e.getMessage());
+        assertInstanceOf(SQLException.class, e.getCause());
+        assertTrue(userExists(user.id()));
+        assertEquals(1, countByUser("accounts", user.id()));
+        assertEquals(1, countByUser("categories", user.id()));
+        assertEquals(1, countByUser("obligations", user.id()));
+        assertEquals(1, countWhere("occurrence_resolutions", "obligation_id = '" + obligationId + "'"));
+        assertEquals(1, countWhere("expense_operations", "id = '" + expenseId + "'"));
+    }
+
+    @Test
+    void directDeleteOfAccountReferencedByObligationFails() throws Exception {
+        User user = new User(UUID.randomUUID());
+        UUID obligationId = UUID.randomUUID();
+        transactionManager.execute(() -> {
+            userRepository.create(user);
+            seedObligation(user.id(), obligationId);
+        });
+
+        assertThrows(SQLException.class,
+            () -> executeRaw("DELETE FROM accounts WHERE id = '" + accountIdOf(obligationId) + "'"));
+
+        assertEquals(1, countByUser("accounts", user.id()));
+        assertEquals(1, countByUser("obligations", user.id()));
+    }
+
+    @Test
+    void directDeleteOfCategoryReferencedByObligationFails() throws Exception {
+        User user = new User(UUID.randomUUID());
+        UUID obligationId = UUID.randomUUID();
+        transactionManager.execute(() -> {
+            userRepository.create(user);
+            seedObligation(user.id(), obligationId);
+        });
+
+        assertThrows(SQLException.class,
+            () -> executeRaw("DELETE FROM categories WHERE id = '" + categoryIdOf(obligationId) + "'"));
+
+        assertEquals(1, countByUser("categories", user.id()));
+        assertEquals(1, countByUser("obligations", user.id()));
+    }
+
+    @Test
+    void directDeleteOfExpenseReferencedByResolutionFails() throws Exception {
+        User user = new User(UUID.randomUUID());
+        UUID obligationId = UUID.randomUUID();
+        UUID expenseId = UUID.randomUUID();
+        transactionManager.execute(() -> {
+            userRepository.create(user);
+            seedObligation(user.id(), obligationId);
+            expenseOperationRepository.create(new Expense(expenseId, user.id(), Money.of("10.00"),
+                LocalDate.of(2026, 9, 1), accountIdOf(obligationId), categoryIdOf(obligationId)));
+            resolutionRepository.create(new OccurrenceResolution(UUID.randomUUID(), obligationId,
+                LocalDate.of(2026, 9, 1), ResolutionStatus.PAID, expenseId, Instant.parse("2026-09-01T10:00:00Z")));
+        });
+
+        assertThrows(SQLException.class,
+            () -> executeRaw("DELETE FROM expense_operations WHERE id = '" + expenseId + "'"));
+
+        assertEquals(1, countWhere("expense_operations", "id = '" + expenseId + "'"));
+        assertEquals(1, countWhere("occurrence_resolutions", "obligation_id = '" + obligationId + "'"));
+    }
+
+    // Each obligation gets its own account and category, derived from the obligation id.
+    private static UUID accountIdOf(UUID obligationId) {
+        return UUID.nameUUIDFromBytes(("account-" + obligationId).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static UUID categoryIdOf(UUID obligationId) {
+        return UUID.nameUUIDFromBytes(("category-" + obligationId).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void seedObligation(UUID userId, UUID obligationId) {
+        accountRepository.create(new Account(accountIdOf(obligationId), userId, "Checking"));
+        categoryRepository.create(new Category(categoryIdOf(obligationId), userId, "Rent", CategoryType.EXPENSE));
+        obligationRepository.create(new Obligation(obligationId, userId, "Rent", Money.of("10.00"),
+            accountIdOf(obligationId), categoryIdOf(obligationId),
+            new Recurrence(Frequency.MONTHLY, LocalDate.of(2026, 8, 1), null), ObligationStatus.ACTIVE));
+    }
+
+    private void seedObligationWithSkippedResolution(UUID userId, UUID obligationId) {
+        seedObligation(userId, obligationId);
+        resolutionRepository.create(new OccurrenceResolution(UUID.randomUUID(), obligationId,
+            LocalDate.of(2026, 8, 1), ResolutionStatus.SKIPPED, null, Instant.parse("2026-09-01T10:00:00Z")));
+    }
+
+    private void executeRaw(String sql) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private int countWhere(String table, String condition) throws SQLException {
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE " + condition)) {
+            rs.next();
+            return rs.getInt(1);
+        }
     }
 
     private boolean userExists(UUID userId) throws SQLException {
