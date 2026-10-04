@@ -179,6 +179,17 @@ public final class Obligation {
     }
 
     /**
+     * Lists the overdue occurrences: the scheduled dates between the start date and yesterday that have no
+     * resolution, in ascending order. Same range as {@link #overdueCount}. O(k), with k = scheduled dates in the
+     * range.
+     */
+    public List<LocalDate> overdueDates(LocalDate today, Collection<OccurrenceResolution> resolutions) {
+        Objects.requireNonNull(today, "Today cannot be null");
+        OverdueRange range = OverdueRange.of(recurrence, today);
+        return recurrence.unresolvedDatesBetween(range.from(), range.to(), resolvedDates(resolutions));
+    }
+
+    /**
      * Lists the scheduled dates within {@code [from, to]} (both inclusive) that have no resolution.
      */
     public List<LocalDate> unresolvedDatesBetween(LocalDate from, LocalDate to,
@@ -187,10 +198,24 @@ public final class Obligation {
     }
 
     private static long overdueCount(Recurrence recurrence, LocalDate today, Set<LocalDate> resolvedDates) {
-        return recurrence.countUnresolvedBetween(recurrence.startDate(), today.minusDays(1), resolvedDates);
+        OverdueRange range = OverdueRange.of(recurrence, today);
+        return recurrence.countUnresolvedBetween(range.from(), range.to(), resolvedDates);
     }
 
-    private void ensureActive() {
+    /**
+     * The single definition of the overdue range: from the start date through yesterday, both inclusive.
+     */
+    private record OverdueRange(LocalDate from, LocalDate to) {
+        static OverdueRange of(Recurrence recurrence, LocalDate today) {
+            return new OverdueRange(recurrence.startDate(), today.minusDays(1));
+        }
+    }
+
+    /**
+     * Fails with {@code OBLIGATION_ARCHIVED} if the obligation is archived. Skipping and reopening occurrences call
+     * it before touching resolutions.
+     */
+    public void ensureActive() {
         if (status == ObligationStatus.ARCHIVED) {
             throw new BusinessRuleViolationException(BusinessRuleCode.OBLIGATION_ARCHIVED, "Obligation is archived");
         }
