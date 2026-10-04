@@ -87,7 +87,12 @@ public final class OccurrenceResolution {
         }
     }
 
-    private static void validateNewResolution(Obligation obligation, LocalDate dueDate) {
+    /**
+     * Checks that a new resolution can be created for the date: the obligation is not archived
+     * ({@code OBLIGATION_ARCHIVED}) and the date is on its current calendar ({@code OCCURRENCE_NOT_SCHEDULED}).
+     * The factories call it; callers that must check before they have the expense id (paying) call it first.
+     */
+    public static void validateNewResolution(Obligation obligation, LocalDate dueDate) {
         Objects.requireNonNull(obligation, "Obligation cannot be null");
         Objects.requireNonNull(dueDate, "Due date cannot be null");
         obligation.ensureActive();
