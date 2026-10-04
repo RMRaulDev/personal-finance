@@ -202,6 +202,66 @@ class OccurrenceResolutionTest {
             () -> OccurrenceResolution.skipped(obligation, d(2026, 9, 10), RESOLVED_AT));
     }
 
+    // validateNewResolution
+
+    @Test
+    void validateNewResolutionAcceptsAScheduledDate() {
+        Obligation obligation = weeklyObligation();
+
+        assertDoesNotThrow(() -> OccurrenceResolution.validateNewResolution(obligation, d(2026, 8, 13)));
+    }
+
+    @Test
+    void validateNewResolutionAcceptsAFutureScheduledDate() {
+        Obligation obligation = weeklyObligation();
+
+        assertDoesNotThrow(() -> OccurrenceResolution.validateNewResolution(obligation, d(2026, 9, 3)));
+    }
+
+    @Test
+    void validateNewResolutionRejectsArchivedObligation() {
+        Obligation archived = obligation(new Recurrence(Frequency.WEEKLY, d(2026, 8, 6), null),
+            ObligationStatus.ARCHIVED);
+
+        assertRule(BusinessRuleCode.OBLIGATION_ARCHIVED, "Obligation is archived",
+            () -> OccurrenceResolution.validateNewResolution(archived, d(2026, 8, 13)));
+    }
+
+    @Test
+    void validateNewResolutionRejectsDateOffTheCalendar() {
+        Obligation obligation = weeklyObligation();
+
+        assertRule(BusinessRuleCode.OCCURRENCE_NOT_SCHEDULED, "Occurrence is not scheduled for the obligation",
+            () -> OccurrenceResolution.validateNewResolution(obligation, d(2026, 8, 14)));
+    }
+
+    @Test
+    void validateNewResolutionReportsArchivedBeforeOffCalendar() {
+        Obligation archived = obligation(new Recurrence(Frequency.WEEKLY, d(2026, 8, 6), null),
+            ObligationStatus.ARCHIVED);
+
+        assertRule(BusinessRuleCode.OBLIGATION_ARCHIVED, "Obligation is archived",
+            () -> OccurrenceResolution.validateNewResolution(archived, d(2026, 8, 14)));
+    }
+
+    @Test
+    void validateNewResolutionRejectsNullObligation() {
+        NullPointerException exception = assertThrows(NullPointerException.class,
+            () -> OccurrenceResolution.validateNewResolution(null, d(2026, 8, 13)));
+
+        assertEquals("Obligation cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void validateNewResolutionRejectsNullDueDate() {
+        Obligation obligation = weeklyObligation();
+
+        NullPointerException exception = assertThrows(NullPointerException.class,
+            () -> OccurrenceResolution.validateNewResolution(obligation, null));
+
+        assertEquals("Due date cannot be null", exception.getMessage());
+    }
+
     // ensureReopenable
 
     @Test

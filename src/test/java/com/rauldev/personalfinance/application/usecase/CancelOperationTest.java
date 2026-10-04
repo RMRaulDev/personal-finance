@@ -1,6 +1,9 @@
 package com.rauldev.personalfinance.application.usecase;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +22,7 @@ import com.rauldev.personalfinance.application.exception.ResourceNotFoundExcepti
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.domain.Account;
@@ -27,11 +31,14 @@ import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
 import com.rauldev.personalfinance.domain.Expense;
 import com.rauldev.personalfinance.domain.Income;
 import com.rauldev.personalfinance.domain.Money;
+import com.rauldev.personalfinance.domain.OccurrenceResolution;
 import com.rauldev.personalfinance.domain.OperationStatus;
+import com.rauldev.personalfinance.domain.ResolutionStatus;
 import com.rauldev.personalfinance.domain.Reversal;
 
 class CancelOperationTest {
     private static final LocalDate OPERATION_DATE = LocalDate.of(2026, 8, 20);
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-20T10:15:30Z"), ZoneOffset.UTC);
 
     @Test
     void execute_shouldCancelIncomeAndDebitAccountAndPersistReversal() {
@@ -56,7 +63,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -104,7 +113,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -145,7 +156,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -182,7 +195,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -218,7 +233,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -257,7 +274,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -293,7 +312,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -326,7 +347,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -361,7 +384,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -398,7 +423,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         CancelOperationCommand command = new CancelOperationCommand(userId, operationId);
@@ -432,7 +459,9 @@ class CancelOperationTest {
             incomeRepository,
             expenseRepository,
             reversalRepository,
-            transactionManager
+            new RecordingResolutionRepository(),
+            transactionManager,
+            CLOCK
         );
 
         cancelOperation.execute(new CancelOperationCommand(userId, operationId));
@@ -443,7 +472,133 @@ class CancelOperationTest {
     @Test
     void constructor_shouldRejectNullDependencies() {
         assertThrows(NullPointerException.class,
-            () -> new CancelOperation(null, null, null, null, null));
+            () -> new CancelOperation(null, null, null, null, null, null, null));
+    }
+
+    @Test
+    void execute_shouldDeletePaidResolutionAfterCancellingExpense() {
+        Fixture f = new Fixture(true);
+        OccurrenceResolution resolution = f.paidResolution();
+        int[] seenAtLookup = new int[3];
+        f.resolutionRepository.onFind = () -> {
+            seenAtLookup[0] = f.reversalRepository.createCalls;
+            seenAtLookup[1] = f.expenseRepository.updateCalls;
+            seenAtLookup[2] = f.accountRepository.updatedAccounts.size();
+        };
+
+        f.cancel();
+
+        assertEquals(List.of(f.operationId), f.resolutionRepository.findByExpenseIdCalls);
+        assertEquals(List.of(resolution.id()), f.resolutionRepository.deleted);
+        assertTrue(f.resolutionRepository.resolutions.isEmpty());
+        assertEquals(1, seenAtLookup[0]);
+        assertEquals(1, seenAtLookup[1]);
+        assertEquals(1, seenAtLookup[2]);
+        assertEquals(OperationStatus.CANCELLED, f.expense.status());
+        assertEquals(Money.ofCents(13000), f.account.balance());
+    }
+
+    @Test
+    void execute_shouldOnlyLookUpResolutionWhenCancellingExpenseWithoutResolution() {
+        Fixture f = new Fixture(true);
+
+        f.cancel();
+
+        assertEquals(List.of(f.operationId), f.resolutionRepository.findByExpenseIdCalls);
+        assertTrue(f.resolutionRepository.deleted.isEmpty());
+        assertEquals(1, f.reversalRepository.createCalls);
+    }
+
+    @Test
+    void execute_shouldNotTouchResolutionsWhenCancellingIncome() {
+        Fixture f = new Fixture(false);
+
+        f.cancel();
+
+        assertTrue(f.resolutionRepository.findByExpenseIdCalls.isEmpty());
+        assertTrue(f.resolutionRepository.deleted.isEmpty());
+        assertEquals(1, f.reversalRepository.createCalls);
+    }
+
+    @Test
+    void execute_shouldNotTouchResolutionsWhenExpenseIsAlreadyCancelled() {
+        Fixture f = new Fixture(true);
+        f.paidResolution();
+        f.expense.cancel();
+
+        assertThrows(BusinessRuleViolationException.class, f::cancel);
+
+        assertTrue(f.resolutionRepository.findByExpenseIdCalls.isEmpty());
+        assertTrue(f.resolutionRepository.deleted.isEmpty());
+        assertEquals(1, f.resolutionRepository.resolutions.size());
+    }
+
+    @Test
+    void execute_shouldNotTouchResolutionsWhenAccountOfExpenseDoesNotExist() {
+        Fixture f = new Fixture(true);
+        f.paidResolution();
+        CancelOperation useCase = new CancelOperation(new RecordingAccountRepository(), f.incomeRepository,
+            f.expenseRepository, f.reversalRepository, f.resolutionRepository, f.transactionManager, CLOCK);
+
+        assertThrows(ResourceNotFoundException.class,
+            () -> useCase.execute(new CancelOperationCommand(f.userId, f.operationId)));
+
+        assertTrue(f.resolutionRepository.findByExpenseIdCalls.isEmpty());
+        assertTrue(f.resolutionRepository.deleted.isEmpty());
+        assertEquals(1, f.resolutionRepository.resolutions.size());
+    }
+
+    @Test
+    void execute_shouldNotTouchResolutionsWhenOperationBelongsToAnotherUser() {
+        Fixture f = new Fixture(true);
+        f.paidResolution();
+        CancelOperation useCase = f.useCase();
+
+        assertThrows(ResourceNotFoundException.class,
+            () -> useCase.execute(new CancelOperationCommand(UUID.randomUUID(), f.operationId)));
+
+        assertTrue(f.resolutionRepository.findByExpenseIdCalls.isEmpty());
+        assertTrue(f.resolutionRepository.deleted.isEmpty());
+    }
+
+    @Test
+    void execute_shouldRecordReversalWithClockInstantWhenCancellingIncome() {
+        Fixture f = new Fixture(false);
+
+        f.cancel();
+
+        assertEquals(Instant.now(CLOCK), f.reversalRepository.createdReversal.cancelledAt());
+    }
+
+    @Test
+    void execute_shouldRecordReversalWithClockInstantWhenCancellingExpense() {
+        Fixture f = new Fixture(true);
+
+        f.cancel();
+
+        assertEquals(Instant.now(CLOCK), f.reversalRepository.createdReversal.cancelledAt());
+    }
+
+    @Test
+    void constructor_shouldThrowWhenOccurrenceResolutionRepositoryIsNull() {
+        Fixture f = new Fixture(true);
+
+        NullPointerException e = assertThrows(NullPointerException.class,
+            () -> new CancelOperation(f.accountRepository, f.incomeRepository, f.expenseRepository,
+                f.reversalRepository, null, f.transactionManager, CLOCK));
+
+        assertEquals("Occurrence resolution repository cannot be null", e.getMessage());
+    }
+
+    @Test
+    void constructor_shouldThrowWhenClockIsNull() {
+        Fixture f = new Fixture(true);
+
+        NullPointerException e = assertThrows(NullPointerException.class,
+            () -> new CancelOperation(f.accountRepository, f.incomeRepository, f.expenseRepository,
+                f.reversalRepository, f.resolutionRepository, f.transactionManager, null));
+
+        assertEquals("Clock cannot be null", e.getMessage());
     }
 
     @Test
@@ -452,6 +607,54 @@ class CancelOperationTest {
             () -> new CancelOperationCommand(null, UUID.randomUUID()));
         assertThrows(NullPointerException.class,
             () -> new CancelOperationCommand(UUID.randomUUID(), null));
+    }
+
+    private static final class Fixture {
+        private final UUID userId = UUID.randomUUID();
+        private final UUID accountId = UUID.randomUUID();
+        private final UUID categoryId = UUID.randomUUID();
+        private final UUID operationId = UUID.randomUUID();
+        private final Account account = new Account(accountId, userId, "Checking");
+        private final RecordingAccountRepository accountRepository = new RecordingAccountRepository(account);
+        private final RecordingIncomeRepository incomeRepository;
+        private final RecordingExpenseRepository expenseRepository;
+        private final RecordingReversalRepository reversalRepository = new RecordingReversalRepository();
+        private final RecordingResolutionRepository resolutionRepository = new RecordingResolutionRepository();
+        private final RecordingTransactionManager transactionManager = new RecordingTransactionManager();
+        private final Expense expense;
+        private final Income income;
+
+        private Fixture(boolean expenseOperation) {
+            account.credit(Money.ofCents(10000));
+            if (expenseOperation) {
+                expense = new Expense(operationId, userId, Money.ofCents(3000), OPERATION_DATE, accountId,
+                    categoryId);
+                income = null;
+                incomeRepository = new RecordingIncomeRepository();
+                expenseRepository = new RecordingExpenseRepository(expense);
+            } else {
+                income = new Income(operationId, userId, Money.ofCents(3000), OPERATION_DATE, accountId, categoryId);
+                expense = null;
+                incomeRepository = new RecordingIncomeRepository(income);
+                expenseRepository = new RecordingExpenseRepository();
+            }
+        }
+
+        private CancelOperation useCase() {
+            return new CancelOperation(accountRepository, incomeRepository, expenseRepository, reversalRepository,
+                resolutionRepository, transactionManager, CLOCK);
+        }
+
+        private UUID cancel() {
+            return useCase().execute(new CancelOperationCommand(userId, operationId));
+        }
+
+        private OccurrenceResolution paidResolution() {
+            OccurrenceResolution resolution = new OccurrenceResolution(UUID.randomUUID(), UUID.randomUUID(),
+                OPERATION_DATE, ResolutionStatus.PAID, operationId, Instant.parse("2026-08-01T00:00:00Z"));
+            resolutionRepository.resolutions.add(resolution);
+            return resolution;
+        }
     }
 
     private static final class RecordingTransactionManager implements TransactionManager {
@@ -635,6 +838,41 @@ class CancelOperationTest {
 
         @Override
         public void deleteById(UUID id) {
+        }
+    }
+
+    private static final class RecordingResolutionRepository implements OccurrenceResolutionRepository {
+        private final List<OccurrenceResolution> resolutions = new ArrayList<>();
+        private final List<UUID> findByExpenseIdCalls = new ArrayList<>();
+        private final List<UUID> deleted = new ArrayList<>();
+        private Runnable onFind = () -> { };
+
+        @Override
+        public OccurrenceResolution create(OccurrenceResolution resolution) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<OccurrenceResolution> findByObligationId(UUID obligationId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<OccurrenceResolution> findByObligationIdAndDueDate(UUID obligationId, LocalDate dueDate) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Optional<OccurrenceResolution> findByExpenseId(UUID expenseId) {
+            findByExpenseIdCalls.add(expenseId);
+            onFind.run();
+            return resolutions.stream().filter(r -> r.expenseId().filter(expenseId::equals).isPresent()).findFirst();
+        }
+
+        @Override
+        public void delete(UUID resolutionId) {
+            deleted.add(resolutionId);
+            resolutions.removeIf(r -> r.id().equals(resolutionId));
         }
     }
 }
