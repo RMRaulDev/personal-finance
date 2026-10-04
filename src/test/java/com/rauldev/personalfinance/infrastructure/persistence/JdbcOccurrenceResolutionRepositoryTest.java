@@ -236,6 +236,24 @@ class JdbcOccurrenceResolutionRepositoryTest {
     }
 
     @Test
+    void failedInsertInABatchOfSkipsRollsBackTheWholeTransaction() {
+        LocalDate conflicting = LocalDate.of(2026, 9, 1);
+        transactionManager.execute(() -> resolutionRepository.create(skipped(OBLIGATION_ID, conflicting)));
+
+        BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
+            () -> transactionManager.execute(() -> {
+                resolutionRepository.create(skipped(OBLIGATION_ID, LocalDate.of(2026, 8, 1)));
+                resolutionRepository.create(skipped(OBLIGATION_ID, conflicting));
+                return null;
+            }));
+
+        assertEquals(BusinessRuleCode.OCCURRENCE_ALREADY_RESOLVED, ex.code());
+        List<OccurrenceResolution> remaining = transactionManager.execute(
+            () -> resolutionRepository.findByObligationId(OBLIGATION_ID));
+        assertEquals(List.of(conflicting), remaining.stream().map(OccurrenceResolution::dueDate).toList());
+    }
+
+    @Test
     void sameDueDateIsAllowedForDifferentObligations() {
         LocalDate dueDate = LocalDate.of(2026, 9, 1);
 

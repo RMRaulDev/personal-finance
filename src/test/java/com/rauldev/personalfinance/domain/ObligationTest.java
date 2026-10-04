@@ -1,5 +1,6 @@
 package com.rauldev.personalfinance.domain;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -898,6 +899,111 @@ class ObligationTest {
 
         assertEquals(List.of(d(2026, 8, 13), d(2026, 8, 27)),
             obligation.unresolvedDatesBetween(d(2026, 8, 7), d(2026, 8, 30), resolutions));
+    }
+
+    // overdueDates
+
+    @Test
+    void overdueDatesListsScheduledDatesFromStartThroughYesterdayAscending() {
+        Obligation obligation = overdueObligation();
+
+        assertEquals(List.of(d(2026, 8, 6), d(2026, 8, 13)), obligation.overdueDates(TODAY, List.of()));
+    }
+
+    @Test
+    void overdueDatesExcludesResolvedDatesAndToday() {
+        Obligation obligation = overdueObligation();
+        List<OccurrenceResolution> resolutions = List.of(skipped(obligation, d(2026, 8, 6)),
+            paid(obligation, TODAY));
+
+        assertEquals(List.of(d(2026, 8, 13)), obligation.overdueDates(TODAY, resolutions));
+    }
+
+    @Test
+    void overdueDatesIsEmptyWhenStartDateIsTodayOrLater() {
+        assertEquals(List.of(), obligation(weekly(TODAY)).overdueDates(TODAY, List.of()));
+        assertEquals(List.of(), obligation(weekly(d(2026, 9, 1))).overdueDates(TODAY, List.of()));
+    }
+
+    @Test
+    void overdueDatesIsLimitedByAPastEndDate() {
+        Obligation obligation = obligation(new Recurrence(Frequency.WEEKLY, d(2026, 7, 1), d(2026, 7, 15)));
+
+        assertEquals(List.of(d(2026, 7, 1), d(2026, 7, 8), d(2026, 7, 15)),
+            obligation.overdueDates(TODAY, List.of()));
+    }
+
+    @Test
+    void overdueDatesRejectsNullToday() {
+        Obligation obligation = overdueObligation();
+
+        NullPointerException exception = assertThrows(NullPointerException.class,
+            () -> obligation.overdueDates(null, List.of()));
+
+        assertEquals("Today cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void overdueDatesRejectsNullResolutions() {
+        Obligation obligation = overdueObligation();
+
+        NullPointerException exception = assertThrows(NullPointerException.class,
+            () -> obligation.overdueDates(TODAY, null));
+
+        assertEquals("Resolutions cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void overdueDatesRejectsResolutionOfAnotherObligation() {
+        Obligation obligation = overdueObligation();
+        Obligation other = overdueObligation();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+            () -> obligation.overdueDates(TODAY, List.of(skipped(other, d(2026, 8, 6)))));
+
+        assertEquals("Resolution does not belong to the obligation", exception.getMessage());
+    }
+
+    @Test
+    void overdueDatesIgnoresOffCalendarResolutionsAndKeepsOnCalendarOverdueDates() {
+        Obligation obligation = overdueObligation();
+        OccurrenceResolution offCalendar = paid(obligation, d(2026, 8, 7));
+
+        assertEquals(List.of(d(2026, 8, 6), d(2026, 8, 13)),
+            obligation.overdueDates(TODAY, List.of(offCalendar)));
+    }
+
+    @Test
+    void overdueDatesSizeMatchesOverdueCount() {
+        Obligation weekly = overdueObligation();
+        Obligation ended = obligation(new Recurrence(Frequency.WEEKLY, d(2026, 7, 1), d(2026, 7, 15)));
+        Obligation monthly = obligation(monthly(d(2026, 5, 31)));
+        Obligation future = obligation(weekly(d(2026, 9, 1)));
+        List<OccurrenceResolution> weeklyResolutions = List.of(paid(weekly, d(2026, 8, 7)),
+            skipped(weekly, d(2026, 8, 6)));
+
+        assertEquals(weekly.overdueCount(TODAY, weeklyResolutions), weekly.overdueDates(TODAY, weeklyResolutions).size());
+        assertEquals(weekly.overdueCount(TODAY, List.of()), weekly.overdueDates(TODAY, List.of()).size());
+        assertEquals(ended.overdueCount(TODAY, List.of()), ended.overdueDates(TODAY, List.of()).size());
+        assertEquals(monthly.overdueCount(TODAY, List.of()), monthly.overdueDates(TODAY, List.of()).size());
+        assertEquals(future.overdueCount(TODAY, List.of()), future.overdueDates(TODAY, List.of()).size());
+    }
+
+    // ensureActive
+
+    @Test
+    void ensureActiveAcceptsActiveObligation() {
+        Obligation active = obligation(weekly(TODAY));
+
+        assertDoesNotThrow(active::ensureActive);
+    }
+
+    @Test
+    void ensureActiveRejectsArchivedObligation() {
+        Obligation archived = new Obligation(UUID.randomUUID(), userId, "Rent", AMOUNT, account.id(), category.id(),
+            weekly(TODAY), ObligationStatus.ARCHIVED);
+
+        assertRule(BusinessRuleCode.OBLIGATION_ARCHIVED, "Obligation is archived", archived::ensureActive);
     }
 
     // identity

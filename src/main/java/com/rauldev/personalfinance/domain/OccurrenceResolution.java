@@ -77,12 +77,20 @@ public final class OccurrenceResolution {
         return resolvedAt;
     }
 
+    /**
+     * Only a skipped occurrence can be reopened directly. A paid one is reopened by cancelling its expense.
+     */
+    public void ensureReopenable() {
+        if (status == ResolutionStatus.PAID) {
+            throw new BusinessRuleViolationException(BusinessRuleCode.OCCURRENCE_PAID_NOT_REOPENABLE,
+                "Paid occurrence can only be reopened by cancelling its expense");
+        }
+    }
+
     private static void validateNewResolution(Obligation obligation, LocalDate dueDate) {
         Objects.requireNonNull(obligation, "Obligation cannot be null");
         Objects.requireNonNull(dueDate, "Due date cannot be null");
-        if (obligation.status() == ObligationStatus.ARCHIVED) {
-            throw new BusinessRuleViolationException(BusinessRuleCode.OBLIGATION_ARCHIVED, "Obligation is archived");
-        }
+        obligation.ensureActive();
         if (!obligation.recurrence().isScheduled(dueDate)) {
             throw new BusinessRuleViolationException(BusinessRuleCode.OCCURRENCE_NOT_SCHEDULED,
                 "Occurrence is not scheduled for the obligation");

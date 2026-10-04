@@ -1,5 +1,6 @@
 package com.rauldev.personalfinance.domain;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -199,6 +200,25 @@ class OccurrenceResolutionTest {
             () -> OccurrenceResolution.skipped(obligation, d(2026, 7, 30), RESOLVED_AT));
         assertRule(BusinessRuleCode.OCCURRENCE_NOT_SCHEDULED, "Occurrence is not scheduled for the obligation",
             () -> OccurrenceResolution.skipped(obligation, d(2026, 9, 10), RESOLVED_AT));
+    }
+
+    // ensureReopenable
+
+    @Test
+    void ensureReopenableAcceptsSkippedResolution() {
+        OccurrenceResolution skipped = new OccurrenceResolution(UUID.randomUUID(), UUID.randomUUID(), TODAY,
+            ResolutionStatus.SKIPPED, null, RESOLVED_AT);
+
+        assertDoesNotThrow(skipped::ensureReopenable);
+    }
+
+    @Test
+    void ensureReopenableRejectsPaidResolution() {
+        OccurrenceResolution paid = new OccurrenceResolution(UUID.randomUUID(), UUID.randomUUID(), TODAY,
+            ResolutionStatus.PAID, UUID.randomUUID(), RESOLVED_AT);
+
+        assertRule(BusinessRuleCode.OCCURRENCE_PAID_NOT_REOPENABLE,
+            "Paid occurrence can only be reopened by cancelling its expense", paid::ensureReopenable);
     }
 
     // identity
