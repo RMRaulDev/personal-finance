@@ -26,6 +26,7 @@ import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.ObligationRepository;
 import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
@@ -38,6 +39,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryReposi
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcTransferOperationRepository;
@@ -108,6 +110,7 @@ class PersistenceConfigurationTest {
             assertInstanceOf(JdbcTransferOperationRepository.class,
                 context.getBean(TransferOperationRepository.class));
             assertInstanceOf(JdbcReversalRepository.class, context.getBean(ReversalRepository.class));
+            assertInstanceOf(JdbcObligationRepository.class, context.getBean(ObligationRepository.class));
             assertInstanceOf(JdbcOccurrenceResolutionRepository.class,
                 context.getBean(OccurrenceResolutionRepository.class));
             assertInstanceOf(JdbcFinancialOperationQueryAdapter.class,

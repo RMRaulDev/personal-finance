@@ -11,6 +11,7 @@ import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.ObligationRepository;
 import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
@@ -23,6 +24,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryReposi
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcTransferOperationRepository;
@@ -125,6 +127,11 @@ public class PersistenceConfiguration {
     @Bean
     public ReversalRepository reversalRepository(TransactionConnectionHolder transactionConnectionHolder) {
         return new JdbcReversalRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public ObligationRepository obligationRepository(TransactionConnectionHolder transactionConnectionHolder) {
+        return new JdbcObligationRepository(transactionConnectionHolder);
     }
 
     @Bean

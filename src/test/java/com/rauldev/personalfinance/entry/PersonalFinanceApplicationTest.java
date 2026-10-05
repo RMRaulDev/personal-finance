@@ -20,18 +20,26 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.application.usecase.ArchiveObligation;
 import com.rauldev.personalfinance.application.usecase.CancelOperation;
 import com.rauldev.personalfinance.application.usecase.CreateAccount;
 import com.rauldev.personalfinance.application.usecase.CreateCategory;
+import com.rauldev.personalfinance.application.usecase.CreateObligation;
+import com.rauldev.personalfinance.application.usecase.ExpenseRegistration;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
 import com.rauldev.personalfinance.application.usecase.GetOperationDetails;
 import com.rauldev.personalfinance.application.usecase.GetOperationHistory;
 import com.rauldev.personalfinance.application.usecase.ListAccounts;
 import com.rauldev.personalfinance.application.usecase.ListCategories;
 import com.rauldev.personalfinance.application.usecase.ModifyAccount;
+import com.rauldev.personalfinance.application.usecase.ModifyObligation;
+import com.rauldev.personalfinance.application.usecase.PayOccurrence;
 import com.rauldev.personalfinance.application.usecase.RegisterExpense;
 import com.rauldev.personalfinance.application.usecase.RegisterIncome;
 import com.rauldev.personalfinance.application.usecase.RegisterTransfer;
+import com.rauldev.personalfinance.application.usecase.ReopenOccurrence;
+import com.rauldev.personalfinance.application.usecase.SkipOccurrence;
+import com.rauldev.personalfinance.application.usecase.SkipOverdueOccurrences;
 import com.rauldev.personalfinance.entry.security.ConfiguredSingleUserProvider;
 import com.rauldev.personalfinance.entry.security.CurrentUserProvider;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
@@ -41,6 +49,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryReposi
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcTransferOperationRepository;
@@ -101,7 +110,10 @@ class PersonalFinanceApplicationTest {
             JdbcTransferOperationRepository.class, JdbcReversalRepository.class,
             JdbcOccurrenceResolutionRepository.class, JdbcFinancialOperationQueryAdapter.class,
             RegisterIncome.class, RegisterExpense.class, RegisterTransfer.class, CancelOperation.class,
-            GetOperationHistory.class, GetOperationDetails.class);
+            GetOperationHistory.class, GetOperationDetails.class,
+            JdbcObligationRepository.class, ExpenseRegistration.class, CreateObligation.class,
+            ModifyObligation.class, ArchiveObligation.class, SkipOccurrence.class,
+            SkipOverdueOccurrences.class, ReopenOccurrence.class, PayOccurrence.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);
