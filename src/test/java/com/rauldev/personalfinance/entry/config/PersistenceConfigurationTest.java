@@ -23,12 +23,24 @@ import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.CategoryQueryPort;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
+import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
+import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
+import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
+import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.application.port.out.TransferOperationRepository;
 import com.rauldev.personalfinance.application.port.out.UserQueryPort;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcTransferOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
@@ -91,6 +103,15 @@ class PersistenceConfigurationTest {
             assertInstanceOf(JdbcCategoryRepository.class, context.getBean(CategoryRepository.class));
             assertInstanceOf(JdbcAccountQueryAdapter.class, context.getBean(AccountQueryPort.class));
             assertInstanceOf(JdbcCategoryQueryAdapter.class, context.getBean(CategoryQueryPort.class));
+            assertInstanceOf(JdbcIncomeOperationRepository.class, context.getBean(IncomeOperationRepository.class));
+            assertInstanceOf(JdbcExpenseOperationRepository.class, context.getBean(ExpenseOperationRepository.class));
+            assertInstanceOf(JdbcTransferOperationRepository.class,
+                context.getBean(TransferOperationRepository.class));
+            assertInstanceOf(JdbcReversalRepository.class, context.getBean(ReversalRepository.class));
+            assertInstanceOf(JdbcOccurrenceResolutionRepository.class,
+                context.getBean(OccurrenceResolutionRepository.class));
+            assertInstanceOf(JdbcFinancialOperationQueryAdapter.class,
+                context.getBean(FinancialOperationQueryPort.class));
         });
 
         assertFalse(dbPath.toFile().exists());

@@ -65,6 +65,30 @@ public final class SqliteTestDatabase {
             id.toString(), userId.toString(), name, type, status);
     }
 
+    public void insertIncome(UUID id, UUID accountId, UUID categoryId, long amountCents, String operationDate,
+                             String status) {
+        insertOperation("income_operations", id, accountId, categoryId, amountCents, operationDate, status);
+    }
+
+    public void insertExpense(UUID id, UUID accountId, UUID categoryId, long amountCents, String operationDate,
+                              String status) {
+        insertOperation("expense_operations", id, accountId, categoryId, amountCents, operationDate, status);
+    }
+
+    public void insertTransfer(UUID id, UUID sourceAccountId, UUID targetAccountId, long amountCents,
+                               String operationDate) {
+        execute("INSERT INTO transfer_operations (id, source_account_id, target_account_id, amount, operation_date) "
+                + "VALUES (?, ?, ?, ?, ?)",
+            id.toString(), sourceAccountId.toString(), targetAccountId.toString(), amountCents, operationDate);
+    }
+
+    private void insertOperation(String table, UUID id, UUID accountId, UUID categoryId, long amountCents,
+                                 String operationDate, String status) {
+        execute("INSERT INTO " + table + " (id, account_id, category_id, amount, operation_date, status) "
+                + "VALUES (?, ?, ?, ?, ?, ?)",
+            id.toString(), accountId.toString(), categoryId.toString(), amountCents, operationDate, status);
+    }
+
     public long count(String table) {
         return Long.parseLong(queryFirstColumn("SELECT COUNT(*) FROM " + table));
     }
