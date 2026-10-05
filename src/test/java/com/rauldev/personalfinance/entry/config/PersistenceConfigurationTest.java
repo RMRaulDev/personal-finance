@@ -20,6 +20,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.application.port.out.UserQueryPort;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
@@ -76,6 +78,7 @@ class PersistenceConfigurationTest {
             assertEquals(1, context.getBeansOfType(SQLiteConnectionProvider.class).size());
             assertEquals(1, context.getBeansOfType(TransactionConnectionHolder.class).size());
             assertInstanceOf(JdbcTransactionManager.class, context.getBean(TransactionManager.class));
+            assertInstanceOf(JdbcUserQueryAdapter.class, context.getBean(UserQueryPort.class));
         });
 
         assertFalse(dbPath.toFile().exists());
@@ -94,6 +97,27 @@ class PersistenceConfigurationTest {
             transactionManager.execute(() -> insertUser(holder.get(), userId));
 
             assertEquals(1, countUsers(context.getBean(SQLiteConnectionProvider.class), userId));
+        });
+    }
+
+    @Test
+    void userQueryPortBeanSeesRowsOfTheActiveTransaction() {
+        Path dbPath = tempDir.resolve("finance.db");
+        UUID userId = UUID.randomUUID();
+
+        runner.withPropertyValues(URL_PROPERTY + "jdbc:sqlite:" + dbPath).run(context -> {
+            initializeSchema(context.getBean(SQLiteConnectionProvider.class));
+            TransactionManager transactionManager = context.getBean(TransactionManager.class);
+            TransactionConnectionHolder holder = context.getBean(TransactionConnectionHolder.class);
+            UserQueryPort userQueryPort = context.getBean(UserQueryPort.class);
+            boolean[] seen = new boolean[1];
+
+            transactionManager.execute(() -> {
+                insertUser(holder.get(), userId);
+                seen[0] = userQueryPort.existsById(userId);
+            });
+
+            assertTrue(seen[0]);
         });
     }
 

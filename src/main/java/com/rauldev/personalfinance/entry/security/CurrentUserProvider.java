@@ -3,12 +3,13 @@ package com.rauldev.personalfinance.entry.security;
 import java.util.UUID;
 
 /**
- * Boundary that resolves the identity of the authenticated user for the current request.
+ * Boundary that resolves the identity of the user for the current request.
  *
- * <p>Not implemented yet: no authentication mechanism has been chosen. There is intentionally no
- * implementation, no fixed or default user, and no bean that depends on this interface. Controllers
- * that need the user identity must wait for an implementation instead of accepting a user id from
- * the request.
+ * <p>Controllers obtain the user id only from this interface and never accept it from the
+ * request (path, query, header, or body). No authentication mechanism exists yet, so the only
+ * implementation is {@link ConfiguredSingleUserProvider} (single-user mode), wired in
+ * {@code entry.config.SecurityConfiguration}. Do not add any other fixed, default, or fake user.
+ * Real authentication will replace only that bean.
  */
 public interface CurrentUserProvider {
 

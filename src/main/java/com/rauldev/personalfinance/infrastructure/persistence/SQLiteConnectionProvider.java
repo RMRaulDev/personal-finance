@@ -6,7 +6,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Objects;
 
+/**
+ * Opens SQLite connections with the pragmas the application relies on.
+ *
+ * <p>Every connection enables foreign keys and sets an explicit busy timeout: a connection that
+ * finds the database locked by another connection waits up to {@value #BUSY_TIMEOUT_MILLIS} ms
+ * before failing with {@code SQLITE_BUSY}.
+ */
 public final class SQLiteConnectionProvider {
+    static final int BUSY_TIMEOUT_MILLIS = 5000;
+
     private final String jdbcUrl;
 
     public SQLiteConnectionProvider(String jdbcUrl) {
@@ -20,6 +29,7 @@ public final class SQLiteConnectionProvider {
         Connection connection = DriverManager.getConnection(jdbcUrl);
         try (Statement statement = connection.createStatement()) {
             statement.execute("PRAGMA foreign_keys = ON;");
+            statement.execute("PRAGMA busy_timeout = " + BUSY_TIMEOUT_MILLIS + ";");
         } catch (SQLException e) {
             try {
                 connection.close();
