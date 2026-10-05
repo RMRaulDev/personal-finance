@@ -8,12 +8,24 @@ import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.CategoryQueryPort;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
+import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
+import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
+import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
+import com.rauldev.personalfinance.application.port.out.ReversalRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.application.port.out.TransferOperationRepository;
 import com.rauldev.personalfinance.application.port.out.UserQueryPort;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcTransferOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
@@ -87,5 +99,46 @@ public class PersistenceConfiguration {
         TransactionConnectionHolder transactionConnectionHolder
     ) {
         return new JdbcCategoryQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
+    }
+
+    @Bean
+    public IncomeOperationRepository incomeOperationRepository(
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcIncomeOperationRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public ExpenseOperationRepository expenseOperationRepository(
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcExpenseOperationRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public TransferOperationRepository transferOperationRepository(
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcTransferOperationRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public ReversalRepository reversalRepository(TransactionConnectionHolder transactionConnectionHolder) {
+        return new JdbcReversalRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public OccurrenceResolutionRepository occurrenceResolutionRepository(
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcOccurrenceResolutionRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public FinancialOperationQueryPort financialOperationQueryPort(
+        SQLiteConnectionProvider sqliteConnectionProvider,
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcFinancialOperationQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
     }
 }

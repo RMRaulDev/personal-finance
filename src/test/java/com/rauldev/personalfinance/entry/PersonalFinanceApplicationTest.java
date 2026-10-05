@@ -20,18 +20,30 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.application.usecase.CancelOperation;
 import com.rauldev.personalfinance.application.usecase.CreateAccount;
 import com.rauldev.personalfinance.application.usecase.CreateCategory;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
+import com.rauldev.personalfinance.application.usecase.GetOperationDetails;
+import com.rauldev.personalfinance.application.usecase.GetOperationHistory;
 import com.rauldev.personalfinance.application.usecase.ListAccounts;
 import com.rauldev.personalfinance.application.usecase.ListCategories;
 import com.rauldev.personalfinance.application.usecase.ModifyAccount;
+import com.rauldev.personalfinance.application.usecase.RegisterExpense;
+import com.rauldev.personalfinance.application.usecase.RegisterIncome;
+import com.rauldev.personalfinance.application.usecase.RegisterTransfer;
 import com.rauldev.personalfinance.entry.security.ConfiguredSingleUserProvider;
 import com.rauldev.personalfinance.entry.security.CurrentUserProvider;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcTransferOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
@@ -84,7 +96,12 @@ class PersonalFinanceApplicationTest {
             SQLiteConnectionProvider.class, TransactionConnectionHolder.class, JdbcTransactionManager.class,
             JdbcUserQueryAdapter.class, JdbcAccountRepository.class, JdbcCategoryRepository.class,
             JdbcAccountQueryAdapter.class, CreateAccount.class, ModifyAccount.class, GetAccount.class,
-            CreateCategory.class, JdbcCategoryQueryAdapter.class, ListAccounts.class, ListCategories.class);
+            CreateCategory.class, JdbcCategoryQueryAdapter.class, ListAccounts.class, ListCategories.class,
+            JdbcIncomeOperationRepository.class, JdbcExpenseOperationRepository.class,
+            JdbcTransferOperationRepository.class, JdbcReversalRepository.class,
+            JdbcOccurrenceResolutionRepository.class, JdbcFinancialOperationQueryAdapter.class,
+            RegisterIncome.class, RegisterExpense.class, RegisterTransfer.class, CancelOperation.class,
+            GetOperationHistory.class, GetOperationDetails.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);
