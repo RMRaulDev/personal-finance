@@ -8,6 +8,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -259,6 +264,59 @@ class JdbcTransactionManagerTest {
              ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users WHERE id = '" + userId + "'")) {
             assertTrue(rs.next());
             assertEquals(0, rs.getInt(1));
+        }
+    }
+
+    @Test
+    void writerCommitWaitsForReaderLockInsteadOfFailingWithBusy() throws Exception {
+        UUID userId = UUID.randomUUID();
+        CountDownLatch readerHoldsSharedLock = new CountDownLatch(1);
+        CountDownLatch releaseReader = new CountDownLatch(1);
+        CountDownLatch writerFinished = new CountDownLatch(1);
+        CountDownLatch writerReachedCommit = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> reader = executor.submit(() -> transactionManager.execute(() -> {
+                try (Statement stmt = connectionHolder.get().createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users")) {
+                    rs.next();
+                    readerHoldsSharedLock.countDown();
+                    assertTrue(releaseReader.await(10, TimeUnit.SECONDS));
+                } catch (SQLException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }));
+            assertTrue(readerHoldsSharedLock.await(10, TimeUnit.SECONDS));
+
+            Future<?> writer = executor.submit(() -> {
+                transactionManager.execute(() -> {
+                    try (Statement stmt = connectionHolder.get().createStatement()) {
+                        stmt.executeUpdate("INSERT INTO users (id) VALUES ('" + userId + "')");
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    writerReachedCommit.countDown();
+                });
+                writerFinished.countDown();
+            });
+
+            assertTrue(writerReachedCommit.await(10, TimeUnit.SECONDS));
+            assertFalse(writerFinished.await(300, TimeUnit.MILLISECONDS),
+                "writer commit must wait while the reader holds its lock");
+
+            releaseReader.countDown();
+            reader.get(10, TimeUnit.SECONDS);
+            writer.get(10, TimeUnit.SECONDS);
+        } finally {
+            releaseReader.countDown();
+            executor.shutdownNow();
+        }
+
+        try (Connection conn = connectionProvider.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM users WHERE id = '" + userId + "'")) {
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
         }
     }
 }

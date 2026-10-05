@@ -5,6 +5,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -17,13 +19,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.rauldev.personalfinance.application.exception.ResourceNotFoundException;
 import com.rauldev.personalfinance.domain.BusinessRuleCode;
 import com.rauldev.personalfinance.domain.BusinessRuleViolationException;
+import com.rauldev.personalfinance.entry.security.SingleUserNotProvisionedException;
 import com.rauldev.personalfinance.infrastructure.persistence.CorruptedPersistedDataException;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -39,6 +44,7 @@ class ApiExceptionHandlerTest {
     static void sqliteUrl(DynamicPropertyRegistry registry) {
         registry.add("personal-finance.sqlite.url",
             () -> "jdbc:sqlite:" + tempDir.resolve("api.db").toAbsolutePath());
+        registry.add("personal-finance.single-user-id", () -> "00000000-0000-4000-8000-000000000001");
     }
 
     @LocalServerPort
@@ -132,6 +138,167 @@ class ApiExceptionHandlerTest {
         assertTrue(contentType(response).startsWith("application/problem+json"));
     }
 
+    @Test
+    void invalidUuidPathVariableAnswers400ProblemDetail() throws Exception {
+        HttpResponse<String> response = get("/test-errors/by-id/not-a-uuid");
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void validUuidPathVariableIsAccepted() throws Exception {
+        HttpResponse<String> response = get("/test-errors/by-id/00000000-0000-4000-8000-000000000002");
+
+        assertEquals(200, response.statusCode());
+        assertEquals("00000000-0000-4000-8000-000000000002", response.body());
+    }
+
+    @Test
+    void invalidDatePathVariableAnswers400ProblemDetail() throws Exception {
+        HttpResponse<String> response = get("/test-errors/by-date/04-10-2026");
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void isoDatePathVariableIsAccepted() throws Exception {
+        HttpResponse<String> response = get("/test-errors/by-date/2026-10-04");
+
+        assertEquals(200, response.statusCode());
+        assertEquals("2026-10-04", response.body());
+    }
+
+    @Test
+    void localizedShortDateInQueryParameterAnswers400ProblemDetail() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/test-errors/by-date?date=10/4/26"))
+            .header("Accept", "application/json")
+            .header("Accept-Language", "en-US")
+            .GET()
+            .build();
+
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void isoDateInQueryParameterIsAcceptedWithEnglishLocale() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/test-errors/by-date?date=2026-10-04"))
+            .header("Accept", "application/json")
+            .header("Accept-Language", "en-US")
+            .GET()
+            .build();
+
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("2026-10-04", response.body());
+    }
+
+    @Test
+    void unknownJsonPropertyAnswers400ProblemDetail() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "application/json",
+            "{\"amountCents\":1000,\"extra\":true}");
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void integerJsonNumberIsAcceptedForLongField() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "application/json", "{\"amountCents\":1000}");
+
+        assertEquals(200, response.statusCode());
+        assertEquals("1000", response.body());
+    }
+
+    @Test
+    void fractionalJsonNumberForLongFieldAnswers400ProblemDetail() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "application/json", "{\"amountCents\":10.5}");
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void wholeFloatJsonNumberForLongFieldAnswers400ProblemDetail() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "application/json", "{\"amountCents\":10.0}");
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void invalidEnumValueAnswers400ProblemDetail() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "application/json",
+            "{\"amountCents\":1000,\"kind\":\"NOT_A_KIND\"}");
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void validEnumValueIsAccepted() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "application/json",
+            "{\"amountCents\":1000,\"kind\":\"WEEKLY\"}");
+
+        assertEquals(200, response.statusCode());
+    }
+
+    @Test
+    void missingRequestBodyAnswers400ProblemDetail() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/test-errors/typed"))
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .POST(HttpRequest.BodyPublishers.noBody())
+            .build();
+
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(400, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void unsupportedMethodAnswers405ProblemDetail() throws Exception {
+        HttpResponse<String> response = post("/test-errors/not-found", "application/json", "{}");
+
+        assertEquals(405, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void unsupportedMediaTypeAnswers415ProblemDetail() throws Exception {
+        HttpResponse<String> response = post("/test-errors/typed", "text/plain", "amountCents=1000");
+
+        assertEquals(415, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+    }
+
+    @Test
+    void singleUserNotProvisionedAnswers500WithoutLeakingMessage() throws Exception {
+        HttpResponse<String> response = get("/test-errors/single-user-not-provisioned");
+
+        assertEquals(500, response.statusCode());
+        assertTrue(contentType(response).startsWith("application/problem+json"));
+        assertTrue(response.body().contains("\"title\":\"Internal server error\""));
+        assertTrue(response.body().contains("\"detail\":\"Unexpected error\""));
+        assertFalse(response.body().contains("00000000-0000-4000-8000-000000000009"));
+        assertFalse(response.body().contains("users table"));
+    }
+
+    private HttpResponse<String> post(String path, String mediaType, String body) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+            .header("Content-Type", mediaType)
+            .header("Accept", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     private HttpResponse<String> get(String path) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
             .header("Accept", "application/json")
@@ -142,6 +309,11 @@ class ApiExceptionHandlerTest {
 
     private static String contentType(HttpResponse<String> response) {
         return response.headers().firstValue("Content-Type").orElse("");
+    }
+
+    enum Kind { WEEKLY, MONTHLY }
+
+    record TypedBody(Long amountCents, Kind kind) {
     }
 
     @RestController
@@ -176,6 +348,31 @@ class ApiExceptionHandlerTest {
         @PostMapping("/test-errors/echo")
         String echo(@RequestBody java.util.Map<String, Object> body) {
             return "ok";
+        }
+
+        @GetMapping("/test-errors/by-id/{id}")
+        String byId(@PathVariable UUID id) {
+            return id.toString();
+        }
+
+        @GetMapping("/test-errors/by-date/{date}")
+        String byDate(@PathVariable LocalDate date) {
+            return date.toString();
+        }
+
+        @GetMapping("/test-errors/by-date")
+        String byDateParam(@RequestParam LocalDate date) {
+            return date.toString();
+        }
+
+        @PostMapping("/test-errors/typed")
+        String typed(@RequestBody TypedBody body) {
+            return String.valueOf(body.amountCents());
+        }
+
+        @GetMapping("/test-errors/single-user-not-provisioned")
+        String singleUserNotProvisioned() {
+            throw new SingleUserNotProvisionedException(UUID.fromString("00000000-0000-4000-8000-000000000009"));
         }
 
         @GetMapping("/test-errors/unexpected")

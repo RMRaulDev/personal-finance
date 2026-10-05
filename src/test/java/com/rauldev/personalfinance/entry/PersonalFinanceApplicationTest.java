@@ -4,6 +4,7 @@ import java.nio.file.Path;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.sql.DataSource;
 
@@ -19,13 +20,17 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
+import com.rauldev.personalfinance.entry.security.ConfiguredSingleUserProvider;
 import com.rauldev.personalfinance.entry.security.CurrentUserProvider;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
 
 @SpringBootTest
 class PersonalFinanceApplicationTest {
+
+    private static final UUID USER_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
 
     @TempDir
     static Path tempDir;
@@ -34,6 +39,7 @@ class PersonalFinanceApplicationTest {
     static void sqliteUrl(DynamicPropertyRegistry registry) {
         registry.add("personal-finance.sqlite.url",
             () -> "jdbc:sqlite:" + tempDir.resolve("startup.db").toAbsolutePath());
+        registry.add("personal-finance.single-user-id", () -> USER_ID.toString());
     }
 
     @Autowired
@@ -47,8 +53,9 @@ class PersonalFinanceApplicationTest {
     }
 
     @Test
-    void contextHasNoCurrentUserProviderBean() {
-        assertEquals(0, context.getBeanNamesForType(CurrentUserProvider.class).length);
+    void contextExposesConfiguredSingleUserProvider() {
+        assertEquals(1, context.getBeansOfType(CurrentUserProvider.class).size());
+        assertInstanceOf(ConfiguredSingleUserProvider.class, context.getBean(CurrentUserProvider.class));
     }
 
     @Test
@@ -64,7 +71,8 @@ class PersonalFinanceApplicationTest {
     @Test
     void onlyExplicitlyWiredCoreClassesAreBeans() {
         Set<Class<?>> allowed = Set.of(
-            SQLiteConnectionProvider.class, TransactionConnectionHolder.class, JdbcTransactionManager.class);
+            SQLiteConnectionProvider.class, TransactionConnectionHolder.class, JdbcTransactionManager.class,
+            JdbcUserQueryAdapter.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);

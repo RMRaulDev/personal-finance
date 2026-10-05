@@ -44,6 +44,21 @@ class EntryLayerIsolationTest {
     }
 
     @Test
+    void entryWebDoesNotReferenceInfrastructure() throws IOException {
+        Path root = BASE.resolve("entry/web");
+        List<Path> files;
+        try (Stream<Path> walk = Files.walk(root)) {
+            files = walk.filter(p -> p.toString().endsWith(".java")).toList();
+        }
+        assertFalse(files.isEmpty(), "No sources found under " + root);
+
+        for (Path file : files) {
+            assertFalse(Files.readString(file).contains(".infrastructure."),
+                file + " must not reference the infrastructure layer");
+        }
+    }
+
+    @Test
     void applicationClassLivesInEntryPackageSoScanningIsLimitedToEntryLayer() {
         assertEquals("com.rauldev.personalfinance.entry", PersonalFinanceApplication.class.getPackageName());
     }
