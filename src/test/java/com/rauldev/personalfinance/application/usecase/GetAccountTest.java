@@ -1,5 +1,6 @@
 package com.rauldev.personalfinance.application.usecase;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -126,6 +127,11 @@ class GetAccountTest {
             lastAccountId = accountId;
             lastUserId = userId;
             return response;
+        }
+
+        @Override
+        public List<AccountDetails> findByUserId(UUID userId) {
+            throw new UnsupportedOperationException("Not used by GetAccount");
         }
     }
 }

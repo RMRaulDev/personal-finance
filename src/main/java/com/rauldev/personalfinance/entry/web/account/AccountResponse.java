@@ -7,8 +7,9 @@ import com.rauldev.personalfinance.application.readmodel.AccountDetails;
 import com.rauldev.personalfinance.entry.web.common.MoneyCents;
 
 /**
- * Body of {@code GET /api/v1/accounts/{accountId}}. The owner's user id is not exposed, and the
- * status is the enum constant name ({@code ACTIVE}, {@code INACTIVE}).
+ * Body of {@code GET /api/v1/accounts/{accountId}} and element of {@code GET /api/v1/accounts}.
+ * The owner's user id is not exposed, and the status is the enum constant name ({@code ACTIVE},
+ * {@code INACTIVE}).
  */
 public record AccountResponse(UUID id, String name, long balanceCents, String status) {
 
