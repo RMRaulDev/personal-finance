@@ -1,4 +1,4 @@
-package com.rauldev.personalfinance.entry.web.operation;
+package com.rauldev.personalfinance.entry.web.common;
 
 import java.util.UUID;
 

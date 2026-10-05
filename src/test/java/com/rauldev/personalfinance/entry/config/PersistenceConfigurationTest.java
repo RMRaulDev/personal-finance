@@ -23,6 +23,7 @@ import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.CategoryQueryPort;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
+import com.rauldev.personalfinance.application.port.out.DashboardQueryPort;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
@@ -36,6 +37,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAd
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcDashboardQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
@@ -115,6 +117,7 @@ class PersistenceConfigurationTest {
                 context.getBean(OccurrenceResolutionRepository.class));
             assertInstanceOf(JdbcFinancialOperationQueryAdapter.class,
                 context.getBean(FinancialOperationQueryPort.class));
+            assertInstanceOf(JdbcDashboardQueryAdapter.class, context.getBean(DashboardQueryPort.class));
         });
 
         assertFalse(dbPath.toFile().exists());

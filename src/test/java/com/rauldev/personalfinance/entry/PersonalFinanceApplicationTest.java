@@ -27,6 +27,7 @@ import com.rauldev.personalfinance.application.usecase.CreateCategory;
 import com.rauldev.personalfinance.application.usecase.CreateObligation;
 import com.rauldev.personalfinance.application.usecase.ExpenseRegistration;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
+import com.rauldev.personalfinance.application.usecase.GetDashboard;
 import com.rauldev.personalfinance.application.usecase.GetOperationDetails;
 import com.rauldev.personalfinance.application.usecase.GetOperationHistory;
 import com.rauldev.personalfinance.application.usecase.ListAccounts;
@@ -46,6 +47,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAd
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcDashboardQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
@@ -113,7 +115,8 @@ class PersonalFinanceApplicationTest {
             GetOperationHistory.class, GetOperationDetails.class,
             JdbcObligationRepository.class, ExpenseRegistration.class, CreateObligation.class,
             ModifyObligation.class, ArchiveObligation.class, SkipOccurrence.class,
-            SkipOverdueOccurrences.class, ReopenOccurrence.class, PayOccurrence.class);
+            SkipOverdueOccurrences.class, ReopenOccurrence.class, PayOccurrence.class,
+            GetDashboard.class, JdbcDashboardQueryAdapter.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);

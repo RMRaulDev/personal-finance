@@ -13,6 +13,7 @@ import com.rauldev.personalfinance.application.readmodel.TransferDetails;
 import com.rauldev.personalfinance.entry.web.common.AccountSummaryResponse;
 import com.rauldev.personalfinance.entry.web.common.CategorySummaryResponse;
 import com.rauldev.personalfinance.entry.web.common.MoneyCents;
+import com.rauldev.personalfinance.entry.web.common.TransferResponse;
 
 /**
  * Body of {@code GET /api/v1/operations/{operationId}} and element of the operations history.

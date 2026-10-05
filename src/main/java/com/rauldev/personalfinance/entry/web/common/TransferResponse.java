@@ -1,12 +1,13 @@
-package com.rauldev.personalfinance.entry.web.operation;
+package com.rauldev.personalfinance.entry.web.common;
 
 import java.util.Objects;
 
 import com.rauldev.personalfinance.application.readmodel.TransferDetails;
-import com.rauldev.personalfinance.entry.web.common.AccountSummaryResponse;
 
 /**
- * The {@code transfer} part of an {@link OperationResponse}: the two accounts of a transfer.
+ * The {@code transfer} part of an operation in the HTTP API: the two accounts of a transfer. Shared
+ * by the operations endpoints ({@code OperationResponse}) and the dashboard's recent activity
+ * items ({@code RecentActivityItemResponse}).
  */
 public record TransferResponse(AccountSummaryResponse sourceAccount, AccountSummaryResponse targetAccount) {
 
