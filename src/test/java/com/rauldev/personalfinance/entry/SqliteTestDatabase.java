@@ -89,6 +89,20 @@ public final class SqliteTestDatabase {
             id.toString(), accountId.toString(), categoryId.toString(), amountCents, operationDate, status);
     }
 
+    public void insertObligation(UUID id, UUID userId, String name, long amountCents, UUID accountId, UUID categoryId,
+                                 String frequency, String startDate, String endDate, String status) {
+        execute("INSERT INTO obligations (id, user_id, name, amount, account_id, category_id, frequency, start_date, "
+                + "end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            id.toString(), userId.toString(), name, amountCents, accountId.toString(), categoryId.toString(),
+            frequency, startDate, endDate, status);
+    }
+
+    public void insertResolution(UUID id, UUID obligationId, String dueDate, String status, UUID expenseId) {
+        execute("INSERT INTO occurrence_resolutions (id, obligation_id, due_date, status, expense_id, resolved_at) "
+                + "VALUES (?, ?, ?, ?, ?, '2026-10-01T00:00:00Z')",
+            id.toString(), obligationId.toString(), dueDate, status, expenseId == null ? null : expenseId.toString());
+    }
+
     public long count(String table) {
         return Long.parseLong(queryFirstColumn("SELECT COUNT(*) FROM " + table));
     }
