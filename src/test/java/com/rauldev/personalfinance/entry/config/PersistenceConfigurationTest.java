@@ -19,8 +19,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
+import com.rauldev.personalfinance.application.port.out.AccountRepository;
+import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.port.out.UserQueryPort;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
@@ -79,6 +85,9 @@ class PersistenceConfigurationTest {
             assertEquals(1, context.getBeansOfType(TransactionConnectionHolder.class).size());
             assertInstanceOf(JdbcTransactionManager.class, context.getBean(TransactionManager.class));
             assertInstanceOf(JdbcUserQueryAdapter.class, context.getBean(UserQueryPort.class));
+            assertInstanceOf(JdbcAccountRepository.class, context.getBean(AccountRepository.class));
+            assertInstanceOf(JdbcCategoryRepository.class, context.getBean(CategoryRepository.class));
+            assertInstanceOf(JdbcAccountQueryAdapter.class, context.getBean(AccountQueryPort.class));
         });
 
         assertFalse(dbPath.toFile().exists());
