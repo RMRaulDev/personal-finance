@@ -27,6 +27,7 @@ import com.rauldev.personalfinance.application.port.out.DashboardQueryPort;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.ObligationQueryPort;
 import com.rauldev.personalfinance.application.port.out.ObligationRepository;
 import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
@@ -41,6 +42,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcDashboardQuery
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
@@ -113,6 +115,7 @@ class PersistenceConfigurationTest {
                 context.getBean(TransferOperationRepository.class));
             assertInstanceOf(JdbcReversalRepository.class, context.getBean(ReversalRepository.class));
             assertInstanceOf(JdbcObligationRepository.class, context.getBean(ObligationRepository.class));
+            assertInstanceOf(JdbcObligationQueryAdapter.class, context.getBean(ObligationQueryPort.class));
             assertInstanceOf(JdbcOccurrenceResolutionRepository.class,
                 context.getBean(OccurrenceResolutionRepository.class));
             assertInstanceOf(JdbcFinancialOperationQueryAdapter.class,

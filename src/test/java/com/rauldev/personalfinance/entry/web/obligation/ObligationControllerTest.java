@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +30,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import com.rauldev.personalfinance.entry.SqliteTestDatabase;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -150,13 +153,15 @@ class ObligationControllerTest {
     // ---------- create ----------
 
     @Test
-    void createsAnObligationAnswers201WithIdNoLocationAndPersistedRow() throws Exception {
+    void createsAnObligationAnswers201WithIdLocationAndPersistedRow() throws Exception {
         HttpResponse<String> response = send("POST", OBLIGATIONS, createBody("Rent", 2500, ACCOUNT_ID, CATEGORY_ID,
             "{\"frequency\":\"MONTHLY\",\"startDate\":\"2026-10-20\",\"endDate\":\"2026-12-20\"}"));
 
         assertEquals(201, response.statusCode());
-        assertTrue(response.headers().firstValue("Location").isEmpty());
         String id = mapper.readTree(response.body()).path("id").asString();
+        assertEquals("http://localhost:" + port + OBLIGATIONS + "/" + id,
+            response.headers().firstValue("Location").orElseThrow());
+        assertEquals(200, send("GET", OBLIGATIONS + "/" + id, null).statusCode());
         assertEquals(2, database.count("obligations"));
         assertEquals("Rent", database.queryFirstColumn("SELECT name FROM obligations WHERE id = ?", id));
         assertEquals("2500", database.queryFirstColumn("SELECT amount FROM obligations WHERE id = ?", id));
@@ -446,6 +451,115 @@ class ObligationControllerTest {
         assertEquals(404, response.statusCode());
         assertEquals("ACTIVE", database.queryFirstColumn("SELECT status FROM obligations WHERE id = ?",
             OTHER_OBLIGATION_ID.toString()));
+    }
+
+    // ---------- list and get ----------
+
+    private List<String> fieldNames(JsonNode node) {
+        List<String> names = new ArrayList<>();
+        node.propertyNames().forEach(names::add);
+        return names;
+    }
+
+    @Test
+    void listsObligationsAsBareArrayOrderedByNameIncludingArchived() throws Exception {
+        UUID zetaId = UUID.fromString("40000000-0000-4000-8000-000000000011");
+        database.insertObligation(zetaId, USER_ID, "Zeta", 100, ACCOUNT_ID, CATEGORY_ID, "WEEKLY", "2026-09-01",
+            null, "ARCHIVED");
+        seedObligation("MONTHLY", "2026-10-20", null, "ACTIVE");
+        database.insertObligation(UUID.fromString("40000000-0000-4000-8000-000000000012"), USER_ID, "alpha", 100,
+            ACCOUNT_ID, CATEGORY_ID, "WEEKLY", "2026-09-01", null, "ACTIVE");
+
+        HttpResponse<String> response = send("GET", OBLIGATIONS, null);
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertTrue(body.isArray());
+        assertEquals(3, body.size());
+        assertEquals("Rent", body.get(0).path("name").asString());
+        assertEquals("Zeta", body.get(1).path("name").asString());
+        assertEquals("ARCHIVED", body.get(1).path("status").asString());
+        assertEquals("alpha", body.get(2).path("name").asString());
+    }
+
+    @Test
+    void listElementHasExactlyTheDocumentedKeysWithNullEndDatePresent() throws Exception {
+        seedObligation("MONTHLY", "2026-10-20", null, "ACTIVE");
+
+        HttpResponse<String> response = send("GET", OBLIGATIONS, null);
+
+        JsonNode item = mapper.readTree(response.body()).get(0);
+        assertEquals(List.of("id", "name", "amountCents", "account", "category", "recurrence", "status"),
+            fieldNames(item));
+        assertEquals(OBLIGATION_ID.toString(), item.path("id").asString());
+        assertEquals(2500, item.path("amountCents").asLong());
+        assertEquals(List.of("id", "name"), fieldNames(item.path("account")));
+        assertEquals("Wallet", item.path("account").path("name").asString());
+        assertEquals(List.of("id", "name"), fieldNames(item.path("category")));
+        assertEquals("Rent", item.path("category").path("name").asString());
+        JsonNode recurrence = item.path("recurrence");
+        assertEquals(List.of("frequency", "startDate", "endDate"), fieldNames(recurrence));
+        assertEquals("MONTHLY", recurrence.path("frequency").asString());
+        assertEquals("2026-10-20", recurrence.path("startDate").asString());
+        assertTrue(recurrence.get("endDate").isNull());
+        assertEquals("ACTIVE", item.path("status").asString());
+    }
+
+    @Test
+    void listWithoutObligationsAnswersEmptyArray() throws Exception {
+        database.reset();
+        database.insertUser(USER_ID);
+
+        HttpResponse<String> response = send("GET", OBLIGATIONS, null);
+
+        assertEquals(200, response.statusCode());
+        assertEquals("[]", response.body());
+    }
+
+    @Test
+    void getsAnObligationWithTheExactShape() throws Exception {
+        seedObligation("WEEKLY", "2026-10-01", "2026-12-01", "ARCHIVED");
+
+        HttpResponse<String> response = send("GET", OBLIGATIONS + "/" + OBLIGATION_ID, null);
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertEquals(List.of("id", "name", "amountCents", "account", "category", "recurrence", "status"),
+            fieldNames(body));
+        assertEquals(OBLIGATION_ID.toString(), body.path("id").asString());
+        assertEquals("Rent", body.path("name").asString());
+        assertEquals(2500, body.path("amountCents").asLong());
+        assertEquals(ACCOUNT_ID.toString(), body.path("account").path("id").asString());
+        assertEquals("Wallet", body.path("account").path("name").asString());
+        assertEquals(CATEGORY_ID.toString(), body.path("category").path("id").asString());
+        assertEquals("Rent", body.path("category").path("name").asString());
+        assertEquals("WEEKLY", body.path("recurrence").path("frequency").asString());
+        assertEquals("2026-10-01", body.path("recurrence").path("startDate").asString());
+        assertEquals("2026-12-01", body.path("recurrence").path("endDate").asString());
+        assertEquals("ARCHIVED", body.path("status").asString());
+    }
+
+    @Test
+    void getAnotherUsersObligationAnswers404() throws Exception {
+        HttpResponse<String> response = send("GET", OBLIGATIONS + "/" + OTHER_OBLIGATION_ID, null);
+
+        assertProblem(response, 404, "Obligation not found for user: " + OTHER_OBLIGATION_ID);
+    }
+
+    @Test
+    void getUnknownObligationAnswers404() throws Exception {
+        UUID unknown = UUID.fromString("40000000-0000-4000-8000-0000000000ff");
+
+        HttpResponse<String> response = send("GET", OBLIGATIONS + "/" + unknown, null);
+
+        assertProblem(response, 404, "Obligation not found for user: " + unknown);
+    }
+
+    @Test
+    void getWithMalformedIdAnswers400() throws Exception {
+        HttpResponse<String> response = send("GET", OBLIGATIONS + "/not-a-uuid", null);
+
+        assertEquals(400, response.statusCode());
     }
 
     private String obligationColumn(String column) {
