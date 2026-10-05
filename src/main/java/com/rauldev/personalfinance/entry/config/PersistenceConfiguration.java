@@ -4,8 +4,14 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
+import com.rauldev.personalfinance.application.port.out.AccountRepository;
+import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.port.out.UserQueryPort;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
 import com.rauldev.personalfinance.infrastructure.transaction.JdbcTransactionManager;
@@ -53,5 +59,23 @@ public class PersistenceConfiguration {
         TransactionConnectionHolder transactionConnectionHolder
     ) {
         return new JdbcUserQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
+    }
+
+    @Bean
+    public AccountRepository accountRepository(TransactionConnectionHolder transactionConnectionHolder) {
+        return new JdbcAccountRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public CategoryRepository categoryRepository(TransactionConnectionHolder transactionConnectionHolder) {
+        return new JdbcCategoryRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public AccountQueryPort accountQueryPort(
+        SQLiteConnectionProvider sqliteConnectionProvider,
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcAccountQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
     }
 }
