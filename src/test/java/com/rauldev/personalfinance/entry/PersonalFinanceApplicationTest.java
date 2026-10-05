@@ -28,10 +28,12 @@ import com.rauldev.personalfinance.application.usecase.CreateObligation;
 import com.rauldev.personalfinance.application.usecase.ExpenseRegistration;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
 import com.rauldev.personalfinance.application.usecase.GetDashboard;
+import com.rauldev.personalfinance.application.usecase.GetObligation;
 import com.rauldev.personalfinance.application.usecase.GetOperationDetails;
 import com.rauldev.personalfinance.application.usecase.GetOperationHistory;
 import com.rauldev.personalfinance.application.usecase.ListAccounts;
 import com.rauldev.personalfinance.application.usecase.ListCategories;
+import com.rauldev.personalfinance.application.usecase.ListObligations;
 import com.rauldev.personalfinance.application.usecase.ModifyAccount;
 import com.rauldev.personalfinance.application.usecase.ModifyObligation;
 import com.rauldev.personalfinance.application.usecase.PayOccurrence;
@@ -51,6 +53,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcDashboardQuery
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
@@ -116,7 +119,8 @@ class PersonalFinanceApplicationTest {
             JdbcObligationRepository.class, ExpenseRegistration.class, CreateObligation.class,
             ModifyObligation.class, ArchiveObligation.class, SkipOccurrence.class,
             SkipOverdueOccurrences.class, ReopenOccurrence.class, PayOccurrence.class,
-            GetDashboard.class, JdbcDashboardQueryAdapter.class);
+            GetDashboard.class, JdbcDashboardQueryAdapter.class,
+            JdbcObligationQueryAdapter.class, ListObligations.class, GetObligation.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);

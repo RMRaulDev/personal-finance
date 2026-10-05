@@ -8,12 +8,15 @@ import org.springframework.context.annotation.Configuration;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
+import com.rauldev.personalfinance.application.port.out.ObligationQueryPort;
 import com.rauldev.personalfinance.application.port.out.ObligationRepository;
 import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.usecase.ArchiveObligation;
 import com.rauldev.personalfinance.application.usecase.CreateObligation;
 import com.rauldev.personalfinance.application.usecase.ExpenseRegistration;
+import com.rauldev.personalfinance.application.usecase.GetObligation;
+import com.rauldev.personalfinance.application.usecase.ListObligations;
 import com.rauldev.personalfinance.application.usecase.ModifyObligation;
 import com.rauldev.personalfinance.application.usecase.PayOccurrence;
 import com.rauldev.personalfinance.application.usecase.ReopenOccurrence;
@@ -21,8 +24,8 @@ import com.rauldev.personalfinance.application.usecase.SkipOccurrence;
 import com.rauldev.personalfinance.application.usecase.SkipOverdueOccurrences;
 
 /**
- * Wires the obligation use cases: lifecycle (create, modify, archive) and occurrences (pay, skip,
- * skip overdue, reopen).
+ * Wires the obligation use cases: lifecycle (create, modify, archive), queries (list, get), and
+ * occurrences (pay, skip, skip overdue, reopen).
  *
  * <p>Ports come from {@link PersistenceConfiguration}; the {@link Clock} that decides "today"
  * comes from {@link ClockConfiguration} (tests replace it with a {@code @Primary} fixed clock).
@@ -81,6 +84,16 @@ public class ObligationUseCaseConfiguration {
         Clock clock
     ) {
         return new ArchiveObligation(obligationRepository, occurrenceResolutionRepository, transactionManager, clock);
+    }
+
+    @Bean
+    public ListObligations listObligations(ObligationQueryPort obligationQueryPort) {
+        return new ListObligations(obligationQueryPort);
+    }
+
+    @Bean
+    public GetObligation getObligation(ObligationQueryPort obligationQueryPort) {
+        return new GetObligation(obligationQueryPort);
     }
 
     @Bean

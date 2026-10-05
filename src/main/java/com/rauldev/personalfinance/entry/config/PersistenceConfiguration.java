@@ -12,6 +12,7 @@ import com.rauldev.personalfinance.application.port.out.DashboardQueryPort;
 import com.rauldev.personalfinance.application.port.out.ExpenseOperationRepository;
 import com.rauldev.personalfinance.application.port.out.FinancialOperationQueryPort;
 import com.rauldev.personalfinance.application.port.out.IncomeOperationRepository;
+import com.rauldev.personalfinance.application.port.out.ObligationQueryPort;
 import com.rauldev.personalfinance.application.port.out.ObligationRepository;
 import com.rauldev.personalfinance.application.port.out.OccurrenceResolutionRepository;
 import com.rauldev.personalfinance.application.port.out.ReversalRepository;
@@ -26,6 +27,7 @@ import com.rauldev.personalfinance.infrastructure.persistence.JdbcDashboardQuery
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcExpenseOperationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcFinancialOperationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcIncomeOperationRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcObligationRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcOccurrenceResolutionRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcReversalRepository;
@@ -134,6 +136,14 @@ public class PersistenceConfiguration {
     @Bean
     public ObligationRepository obligationRepository(TransactionConnectionHolder transactionConnectionHolder) {
         return new JdbcObligationRepository(transactionConnectionHolder);
+    }
+
+    @Bean
+    public ObligationQueryPort obligationQueryPort(
+        SQLiteConnectionProvider sqliteConnectionProvider,
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcObligationQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
     }
 
     @Bean

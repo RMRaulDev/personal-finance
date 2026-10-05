@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -23,6 +24,7 @@ import com.rauldev.personalfinance.application.readmodel.Dashboard;
 import com.rauldev.personalfinance.application.readmodel.DashboardHorizon;
 import com.rauldev.personalfinance.application.readmodel.FinancialOperationDetails;
 import com.rauldev.personalfinance.application.readmodel.FinancialOperationHistoryItem;
+import com.rauldev.personalfinance.application.readmodel.ObligationDetails;
 import com.rauldev.personalfinance.application.readmodel.ObligationSummary;
 import com.rauldev.personalfinance.application.readmodel.RecentActivityItem;
 import com.rauldev.personalfinance.application.readmodel.TransferDetails;
@@ -30,11 +32,24 @@ import com.rauldev.personalfinance.application.readmodel.UpcomingCommitment;
 import com.rauldev.personalfinance.domain.AttentionType;
 import com.rauldev.personalfinance.domain.CategoryStatus;
 import com.rauldev.personalfinance.domain.CategoryType;
+import com.rauldev.personalfinance.domain.Frequency;
 import com.rauldev.personalfinance.domain.Money;
+import com.rauldev.personalfinance.domain.ObligationStatus;
 import com.rauldev.personalfinance.domain.OperationStatus;
+import com.rauldev.personalfinance.domain.Recurrence;
 
 class ReadModelValidationTest {
     private static final LocalDate OPERATION_DATE = LocalDate.of(2026, 8, 24);
+    private static final AccountSummary OBLIGATION_ACCOUNT = new AccountSummary(UUID.randomUUID(), "Wallet");
+    private static final CategorySummary OBLIGATION_CATEGORY = new CategorySummary(UUID.randomUUID(), "Rent");
+    private static final Recurrence OPEN_ENDED =
+        new Recurrence(Frequency.MONTHLY, LocalDate.of(2026, 10, 20), null);
+
+    private static ObligationDetails obligation(UUID id, String name, Money amount, AccountSummary account,
+                                                CategorySummary category, Recurrence recurrence,
+                                                ObligationStatus status) {
+        return new ObligationDetails(id, name, amount, account, category, recurrence, status);
+    }
 
     @Test
     void accountSummaryRequiresIdAndName() {
@@ -566,5 +581,72 @@ class ReadModelValidationTest {
             () -> dashboard.attention().add(new AttentionItem.Shortfall(cents(1))));
         assertThrows(UnsupportedOperationException.class, () -> dashboard.upcomingCommitments().clear());
         assertThrows(UnsupportedOperationException.class, () -> dashboard.recent().clear());
+    }
+
+    @Test
+    void obligationDetailsAcceptsValidValuesWithoutEndDate() {
+        UUID id = UUID.randomUUID();
+
+        ObligationDetails details = obligation(id, "Rent", cents(2500), OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY,
+            OPEN_ENDED, ObligationStatus.ACTIVE);
+
+        assertEquals(id, details.id());
+        assertEquals("Rent", details.name());
+        assertEquals(cents(2500), details.amount());
+        assertEquals(OBLIGATION_ACCOUNT, details.account());
+        assertEquals(OBLIGATION_CATEGORY, details.category());
+        assertEquals(OPEN_ENDED, details.recurrence());
+        assertEquals(ObligationStatus.ACTIVE, details.status());
+        assertEquals(Optional.empty(), details.recurrence().endDate());
+    }
+
+    @Test
+    void obligationDetailsAcceptsValidValuesWithEndDate() {
+        Recurrence ending = new Recurrence(Frequency.WEEKLY, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 12, 1));
+
+        ObligationDetails details = obligation(UUID.randomUUID(), "Gym", cents(100), OBLIGATION_ACCOUNT,
+            OBLIGATION_CATEGORY, ending, ObligationStatus.ARCHIVED);
+
+        assertEquals(Optional.of(LocalDate.of(2026, 12, 1)), details.recurrence().endDate());
+        assertEquals(ObligationStatus.ARCHIVED, details.status());
+    }
+
+    @Test
+    void obligationDetailsRejectsNullFieldsWithMessages() {
+        UUID id = UUID.randomUUID();
+        Money amount = cents(2500);
+        ObligationStatus active = ObligationStatus.ACTIVE;
+
+        assertEquals("Obligation id cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(null, "Rent", amount, OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, OPEN_ENDED, active))
+            .getMessage());
+        assertEquals("Obligation name cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(id, null, amount, OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, OPEN_ENDED, active))
+            .getMessage());
+        assertEquals("Obligation amount cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(id, "Rent", null, OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, OPEN_ENDED, active))
+            .getMessage());
+        assertEquals("Obligation account cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(id, "Rent", amount, null, OBLIGATION_CATEGORY, OPEN_ENDED, active)).getMessage());
+        assertEquals("Obligation category cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(id, "Rent", amount, OBLIGATION_ACCOUNT, null, OPEN_ENDED, active)).getMessage());
+        assertEquals("Obligation recurrence cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(id, "Rent", amount, OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, null, active))
+            .getMessage());
+        assertEquals("Obligation status cannot be null", assertThrows(NullPointerException.class,
+            () -> obligation(id, "Rent", amount, OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, OPEN_ENDED, null))
+            .getMessage());
+    }
+
+    @Test
+    void obligationDetailsRejectsBlankName() {
+        UUID id = UUID.randomUUID();
+
+        assertEquals("Obligation name cannot be empty", assertThrows(IllegalArgumentException.class,
+            () -> obligation(id, "", cents(1), OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, OPEN_ENDED,
+                ObligationStatus.ACTIVE)).getMessage());
+        assertEquals("Obligation name cannot be empty", assertThrows(IllegalArgumentException.class,
+            () -> obligation(id, "   ", cents(1), OBLIGATION_ACCOUNT, OBLIGATION_CATEGORY, OPEN_ENDED,
+                ObligationStatus.ACTIVE)).getMessage());
     }
 }
