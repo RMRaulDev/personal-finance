@@ -6,11 +6,13 @@ import org.springframework.context.annotation.Configuration;
 
 import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
+import com.rauldev.personalfinance.application.port.out.CategoryQueryPort;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.port.out.UserQueryPort;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
@@ -77,5 +79,13 @@ public class PersistenceConfiguration {
         TransactionConnectionHolder transactionConnectionHolder
     ) {
         return new JdbcAccountQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
+    }
+
+    @Bean
+    public CategoryQueryPort categoryQueryPort(
+        SQLiteConnectionProvider sqliteConnectionProvider,
+        TransactionConnectionHolder transactionConnectionHolder
+    ) {
+        return new JdbcCategoryQueryAdapter(sqliteConnectionProvider, transactionConnectionHolder);
     }
 }

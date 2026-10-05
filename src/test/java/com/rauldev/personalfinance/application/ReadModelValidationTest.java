@@ -17,6 +17,7 @@ import com.rauldev.personalfinance.application.query.OperationType;
 import com.rauldev.personalfinance.application.readmodel.AccountSummary;
 import com.rauldev.personalfinance.application.readmodel.AttentionItem;
 import com.rauldev.personalfinance.application.readmodel.AvailableToSpend;
+import com.rauldev.personalfinance.application.readmodel.CategoryDetails;
 import com.rauldev.personalfinance.application.readmodel.CategorySummary;
 import com.rauldev.personalfinance.application.readmodel.Dashboard;
 import com.rauldev.personalfinance.application.readmodel.DashboardHorizon;
@@ -27,6 +28,8 @@ import com.rauldev.personalfinance.application.readmodel.RecentActivityItem;
 import com.rauldev.personalfinance.application.readmodel.TransferDetails;
 import com.rauldev.personalfinance.application.readmodel.UpcomingCommitment;
 import com.rauldev.personalfinance.domain.AttentionType;
+import com.rauldev.personalfinance.domain.CategoryStatus;
+import com.rauldev.personalfinance.domain.CategoryType;
 import com.rauldev.personalfinance.domain.Money;
 import com.rauldev.personalfinance.domain.OperationStatus;
 
@@ -47,6 +50,42 @@ class ReadModelValidationTest {
 
         assertThrows(NullPointerException.class, () -> new CategorySummary(null, "Food"));
         assertThrows(NullPointerException.class, () -> new CategorySummary(UUID.randomUUID(), null));
+    }
+
+    @Test
+    void categoryDetailsAcceptsValidValues() {
+        UUID id = UUID.randomUUID();
+
+        CategoryDetails details = new CategoryDetails(id, "Food", CategoryType.EXPENSE, CategoryStatus.INACTIVE);
+
+        assertEquals(id, details.id());
+        assertEquals("Food", details.name());
+        assertEquals(CategoryType.EXPENSE, details.type());
+        assertEquals(CategoryStatus.INACTIVE, details.status());
+    }
+
+    @Test
+    void categoryDetailsRejectsNullFieldsWithMessages() {
+        UUID id = UUID.randomUUID();
+
+        assertEquals("Category id cannot be null", assertThrows(NullPointerException.class,
+            () -> new CategoryDetails(null, "Food", CategoryType.EXPENSE, CategoryStatus.ACTIVE)).getMessage());
+        assertEquals("Category name cannot be null", assertThrows(NullPointerException.class,
+            () -> new CategoryDetails(id, null, CategoryType.EXPENSE, CategoryStatus.ACTIVE)).getMessage());
+        assertEquals("Category type cannot be null", assertThrows(NullPointerException.class,
+            () -> new CategoryDetails(id, "Food", null, CategoryStatus.ACTIVE)).getMessage());
+        assertEquals("Category status cannot be null", assertThrows(NullPointerException.class,
+            () -> new CategoryDetails(id, "Food", CategoryType.EXPENSE, null)).getMessage());
+    }
+
+    @Test
+    void categoryDetailsRejectsBlankName() {
+        UUID id = UUID.randomUUID();
+
+        assertEquals("Category name cannot be empty", assertThrows(IllegalArgumentException.class,
+            () -> new CategoryDetails(id, "", CategoryType.INCOME, CategoryStatus.ACTIVE)).getMessage());
+        assertEquals("Category name cannot be empty", assertThrows(IllegalArgumentException.class,
+            () -> new CategoryDetails(id, "   ", CategoryType.INCOME, CategoryStatus.ACTIVE)).getMessage());
     }
 
     @Test

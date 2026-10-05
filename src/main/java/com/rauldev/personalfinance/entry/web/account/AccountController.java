@@ -1,6 +1,7 @@
 package com.rauldev.personalfinance.entry.web.account;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -17,6 +18,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.rauldev.personalfinance.application.usecase.CreateAccount;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
 import com.rauldev.personalfinance.application.usecase.GetAccountQuery;
+import com.rauldev.personalfinance.application.usecase.ListAccounts;
+import com.rauldev.personalfinance.application.usecase.ListAccountsQuery;
 import com.rauldev.personalfinance.application.usecase.ModifyAccount;
 import com.rauldev.personalfinance.entry.security.CurrentUserProvider;
 import com.rauldev.personalfinance.entry.web.common.IdResponse;
@@ -38,17 +41,20 @@ public class AccountController {
     private final CreateAccount createAccount;
     private final ModifyAccount modifyAccount;
     private final GetAccount getAccount;
+    private final ListAccounts listAccounts;
     private final CurrentUserProvider currentUserProvider;
 
     public AccountController(
         CreateAccount createAccount,
         ModifyAccount modifyAccount,
         GetAccount getAccount,
+        ListAccounts listAccounts,
         CurrentUserProvider currentUserProvider
     ) {
         this.createAccount = Objects.requireNonNull(createAccount, "Create account cannot be null");
         this.modifyAccount = Objects.requireNonNull(modifyAccount, "Modify account cannot be null");
         this.getAccount = Objects.requireNonNull(getAccount, "Get account cannot be null");
+        this.listAccounts = Objects.requireNonNull(listAccounts, "List accounts cannot be null");
         this.currentUserProvider = Objects.requireNonNull(currentUserProvider, "Current user provider cannot be null");
     }
 
@@ -79,6 +85,19 @@ public class AccountController {
     ) {
         modifyAccount.execute(request.toCommand(currentUserProvider.currentUserId(), accountId));
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lists all the current user's accounts, active and inactive, ordered by name then id (case-sensitive, see
+     * application.md → Query Rules; clients sort by locale for display). The body is a
+     * bare JSON array (empty when the user has no accounts): the list is small and unpaginated.
+     * Jackson serializes the returned {@link List} directly.
+     */
+    @GetMapping
+    public List<AccountResponse> list() {
+        return listAccounts.execute(new ListAccountsQuery(currentUserProvider.currentUserId())).stream()
+            .map(AccountResponse::from)
+            .toList();
     }
 
     @GetMapping("/{accountId}")

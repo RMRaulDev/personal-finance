@@ -207,6 +207,66 @@ class AccountControllerTest {
         assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith("application/problem+json"));
     }
 
+    @Test
+    void listsAccountsAsBareArrayOrderedByNameWithExactlyTheFields() throws Exception {
+        UUID walletId = UUID.fromString("10000000-0000-4000-8000-000000000011");
+        database.insertAccount(walletId, USER_ID, "Wallet", 123456, "ACTIVE");
+        database.insertAccount(OWN_ACCOUNT_ID, USER_ID, "Checking", 0, "ACTIVE");
+
+        HttpResponse<String> response = send("GET", "/api/v1/accounts", null);
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertTrue(body.isArray());
+        assertEquals(2, body.size());
+        assertEquals("Checking", body.get(0).path("name").asString());
+        assertEquals("Wallet", body.get(1).path("name").asString());
+        JsonNode wallet = body.get(1);
+        assertEquals(4, wallet.size());
+        assertEquals(walletId.toString(), wallet.path("id").asString());
+        assertEquals(123456L, wallet.path("balanceCents").asLong());
+        assertTrue(wallet.path("balanceCents").isIntegralNumber());
+        assertEquals("ACTIVE", wallet.path("status").asString());
+        assertFalse(wallet.has("userId"));
+    }
+
+    @Test
+    void listIncludesInactiveAccounts() throws Exception {
+        database.insertAccount(OWN_ACCOUNT_ID, USER_ID, "Old", 0, "ACTIVE");
+        database.execute("UPDATE accounts SET status = 'INACTIVE' WHERE id = ?", OWN_ACCOUNT_ID.toString());
+
+        HttpResponse<String> response = send("GET", "/api/v1/accounts", null);
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertEquals(1, body.size());
+        assertEquals("INACTIVE", body.get(0).path("status").asString());
+    }
+
+    @Test
+    void listExcludesAnotherUsersAccounts() throws Exception {
+        database.insertAccount(OWN_ACCOUNT_ID, USER_ID, "Mine", 0, "ACTIVE");
+        database.insertAccount(OTHER_ACCOUNT_ID, OTHER_USER_ID, "Theirs", 500, "ACTIVE");
+
+        HttpResponse<String> response = send("GET", "/api/v1/accounts", null);
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertEquals(1, body.size());
+        assertEquals("Mine", body.get(0).path("name").asString());
+        assertFalse(response.body().contains("Theirs"));
+    }
+
+    @Test
+    void listWithoutAccountsAnswersEmptyArray() throws Exception {
+        database.insertAccount(OTHER_ACCOUNT_ID, OTHER_USER_ID, "Theirs", 500, "ACTIVE");
+
+        HttpResponse<String> response = send("GET", "/api/v1/accounts", null);
+
+        assertEquals(200, response.statusCode());
+        assertEquals("[]", response.body());
+    }
+
     private void assertProblem(HttpResponse<String> response, int status, String detail) throws Exception {
         assertEquals(status, response.statusCode());
         assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith("application/problem+json"));

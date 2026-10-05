@@ -23,11 +23,14 @@ import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.usecase.CreateAccount;
 import com.rauldev.personalfinance.application.usecase.CreateCategory;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
+import com.rauldev.personalfinance.application.usecase.ListAccounts;
+import com.rauldev.personalfinance.application.usecase.ListCategories;
 import com.rauldev.personalfinance.application.usecase.ModifyAccount;
 import com.rauldev.personalfinance.entry.security.ConfiguredSingleUserProvider;
 import com.rauldev.personalfinance.entry.security.CurrentUserProvider;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcAccountRepository;
+import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcCategoryRepository;
 import com.rauldev.personalfinance.infrastructure.persistence.JdbcUserQueryAdapter;
 import com.rauldev.personalfinance.infrastructure.persistence.SQLiteConnectionProvider;
@@ -81,7 +84,7 @@ class PersonalFinanceApplicationTest {
             SQLiteConnectionProvider.class, TransactionConnectionHolder.class, JdbcTransactionManager.class,
             JdbcUserQueryAdapter.class, JdbcAccountRepository.class, JdbcCategoryRepository.class,
             JdbcAccountQueryAdapter.class, CreateAccount.class, ModifyAccount.class, GetAccount.class,
-            CreateCategory.class);
+            CreateCategory.class, JdbcCategoryQueryAdapter.class, ListAccounts.class, ListCategories.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -178,6 +179,132 @@ class JdbcAccountQueryAdapterTest {
         assertTrue(ex.getMessage().contains("accounts"));
         assertTrue(ex.getMessage().contains(rowId.toString()));
         assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    @Test
+    void findByUserId_returnsAccountsOrderedByNameThenId() {
+        insertAccountRow(UUID.randomUUID(), USER_A_ID, "Savings", 300, "ACTIVE");
+        insertAccountRow(UUID.randomUUID(), USER_A_ID, "Checking", 200, "ACTIVE");
+        insertAccountRow(UUID.randomUUID(), USER_A_ID, "Wallet", 100, "ACTIVE");
+
+        List<AccountDetails> accounts = accountQueryAdapter.findByUserId(USER_A_ID);
+
+        assertEquals(List.of("Checking", "Savings", "Wallet"), accounts.stream().map(AccountDetails::name).toList());
+    }
+
+    @Test
+    void findByUserId_ordersByNameWithBinaryCollationUppercaseBeforeLowercase() {
+        insertAccountRow(UUID.randomUUID(), USER_A_ID, "alpha", 0, "ACTIVE");
+        insertAccountRow(UUID.randomUUID(), USER_A_ID, "Zeta", 0, "ACTIVE");
+
+        List<AccountDetails> accounts = accountQueryAdapter.findByUserId(USER_A_ID);
+
+        assertEquals(List.of("Zeta", "alpha"), accounts.stream().map(AccountDetails::name).toList());
+    }
+
+    @Test
+    void findByUserId_mapsEveryFieldIncludingBalanceAndBothStatuses() {
+        UUID activeId = UUID.randomUUID();
+        UUID inactiveId = UUID.randomUUID();
+        insertAccountRow(activeId, USER_A_ID, "Active", 12345, "ACTIVE");
+        insertAccountRow(inactiveId, USER_A_ID, "Inactive", 0, "INACTIVE");
+
+        List<AccountDetails> accounts = accountQueryAdapter.findByUserId(USER_A_ID);
+
+        assertEquals(List.of(
+            new AccountDetails(activeId, USER_A_ID, "Active", Money.ofCents(12345), AccountStatus.ACTIVE),
+            new AccountDetails(inactiveId, USER_A_ID, "Inactive", Money.ofCents(0), AccountStatus.INACTIVE)),
+            accounts);
+    }
+
+    @Test
+    void findByUserId_excludesOtherUsersAccounts() {
+        UUID ownId = UUID.randomUUID();
+        insertAccountRow(ownId, USER_A_ID, "Mine", 0, "ACTIVE");
+        insertAccountRow(UUID.randomUUID(), USER_B_ID, "Theirs", 0, "ACTIVE");
+
+        List<AccountDetails> accounts = accountQueryAdapter.findByUserId(USER_A_ID);
+
+        assertEquals(1, accounts.size());
+        assertEquals(ownId, accounts.get(0).id());
+    }
+
+    @Test
+    void findByUserId_returnsEmptyListWhenUserHasNoAccounts() {
+        insertAccountRow(UUID.randomUUID(), USER_B_ID, "Theirs", 0, "ACTIVE");
+
+        assertEquals(List.of(), accountQueryAdapter.findByUserId(USER_A_ID));
+    }
+
+    @Test
+    void findByUserId_worksOutsideAndInsideActiveTransaction() {
+        insertAccountRow(UUID.randomUUID(), USER_A_ID, "Wallet", 0, "ACTIVE");
+
+        List<AccountDetails> outside = accountQueryAdapter.findByUserId(USER_A_ID);
+        List<AccountDetails> inside = transactionManager.execute(() -> accountQueryAdapter.findByUserId(USER_A_ID));
+
+        assertEquals(1, outside.size());
+        assertEquals(outside, inside);
+    }
+
+    @Test
+    void findByUserId_insideTransactionReusesBoundConnectionWithoutClosingIt() {
+        UUID uncommitted = UUID.randomUUID();
+
+        transactionManager.execute(() -> {
+            Connection bound = connectionHolder.get();
+            try (Statement stmt = bound.createStatement()) {
+                stmt.executeUpdate("INSERT INTO accounts (id, user_id, name, balance, status) VALUES ('"
+                    + uncommitted + "', '" + USER_A_ID + "', 'Pending', 0, 'ACTIVE')");
+
+                List<AccountDetails> accounts = accountQueryAdapter.findByUserId(USER_A_ID);
+
+                assertEquals(1, accounts.size());
+                assertEquals(uncommitted, accounts.get(0).id());
+                assertFalse(bound.isClosed());
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Test
+    void findByUserId_rejectsNullUserId() {
+        assertThrows(NullPointerException.class, () -> accountQueryAdapter.findByUserId(null));
+    }
+
+    @Test
+    void findByUserId_failsWithCorruptedPersistedDataWhenStatusIsInvalid() {
+        UUID rowId = UUID.randomUUID();
+        insertAccountRow(rowId, USER_A_ID, "Broken", 0, "BOGUS");
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class,
+            () -> accountQueryAdapter.findByUserId(USER_A_ID));
+
+        assertTrue(ex.getMessage().contains("accounts"));
+        assertTrue(ex.getMessage().contains(rowId.toString()));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    @Test
+    void findByUserId_failsWithCorruptedPersistedDataWhenIdIsNotAUuid() {
+        insertAccountRow("not-a-uuid", USER_A_ID, "Broken", 0, "ACTIVE");
+
+        CorruptedPersistedDataException ex = assertThrows(CorruptedPersistedDataException.class,
+            () -> accountQueryAdapter.findByUserId(USER_A_ID));
+
+        assertTrue(ex.getMessage().contains("accounts"));
+        assertTrue(ex.getMessage().contains("not-a-uuid"));
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+    }
+
+    private void insertAccountRow(Object id, UUID userId, String name, long balance, String status) {
+        try {
+            insertRawRow("INSERT INTO accounts (id, user_id, name, balance, status) VALUES ('" + id + "', '"
+                + userId + "', '" + name + "', " + balance + ", '" + status + "')");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void insertRawRow(String sql) throws SQLException {

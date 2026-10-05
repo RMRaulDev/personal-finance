@@ -5,11 +5,14 @@ import org.springframework.context.annotation.Configuration;
 
 import com.rauldev.personalfinance.application.port.out.AccountQueryPort;
 import com.rauldev.personalfinance.application.port.out.AccountRepository;
+import com.rauldev.personalfinance.application.port.out.CategoryQueryPort;
 import com.rauldev.personalfinance.application.port.out.CategoryRepository;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.usecase.CreateAccount;
 import com.rauldev.personalfinance.application.usecase.CreateCategory;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
+import com.rauldev.personalfinance.application.usecase.ListAccounts;
+import com.rauldev.personalfinance.application.usecase.ListCategories;
 import com.rauldev.personalfinance.application.usecase.ModifyAccount;
 
 /**
@@ -44,10 +47,20 @@ public class AccountUseCaseConfiguration {
     }
 
     @Bean
+    public ListAccounts listAccounts(AccountQueryPort accountQueryPort) {
+        return new ListAccounts(accountQueryPort);
+    }
+
+    @Bean
     public CreateCategory createCategory(
         CategoryRepository categoryRepository,
         TransactionManager transactionManager
     ) {
         return new CreateCategory(categoryRepository, transactionManager);
+    }
+
+    @Bean
+    public ListCategories listCategories(CategoryQueryPort categoryQueryPort) {
+        return new ListCategories(categoryQueryPort);
     }
 }

@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +47,24 @@ public final class JdbcAccountQueryAdapter implements AccountQueryPort {
         }
     }
 
+    @Override
+    public List<AccountDetails> findByUserId(UUID userId) {
+        Objects.requireNonNull(userId, "User id cannot be null");
+
+        String sql = "SELECT id, user_id, name, balance, status FROM accounts WHERE user_id = ? ORDER BY name, id";
+
+        if (connectionHolder.hasActiveTransaction()) {
+            Connection connection = connectionHolder.get();
+            return executeListQuery(connection, sql, userId);
+        } else {
+            try (Connection connection = connectionProvider.getConnection()) {
+                return executeListQuery(connection, sql, userId);
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to query accounts", e);
+            }
+        }
+    }
+
     private Optional<AccountDetails> executeQuery(Connection connection, String sql, UUID accountId, UUID userId) {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, accountId.toString());
@@ -57,6 +77,21 @@ public final class JdbcAccountQueryAdapter implements AccountQueryPort {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to query account details", e);
+        }
+    }
+
+    private List<AccountDetails> executeListQuery(Connection connection, String sql, UUID userId) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, userId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<AccountDetails> accounts = new ArrayList<>();
+                while (resultSet.next()) {
+                    accounts.add(mapRow(resultSet));
+                }
+                return accounts;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to query accounts", e);
         }
     }
 

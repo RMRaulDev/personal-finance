@@ -127,6 +127,73 @@ class CategoryControllerTest {
         assertFalse(response.body().isBlank());
     }
 
+    @Test
+    void listsCategoriesAsBareArrayOrderedByNameWithExactlyTheFields() throws Exception {
+        UUID salaryId = UUID.fromString("20000000-0000-4000-8000-000000000011");
+        database.insertCategory(salaryId, USER_ID, "Salary", "INCOME", "ACTIVE");
+        database.insertCategory(OWN_CATEGORY_ID, USER_ID, "Food", "EXPENSE", "ACTIVE");
+
+        HttpResponse<String> response = get();
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertTrue(body.isArray());
+        assertEquals(2, body.size());
+        assertEquals("Food", body.get(0).path("name").asString());
+        assertEquals("EXPENSE", body.get(0).path("type").asString());
+        JsonNode salary = body.get(1);
+        assertEquals(4, salary.size());
+        assertEquals(salaryId.toString(), salary.path("id").asString());
+        assertEquals("Salary", salary.path("name").asString());
+        assertEquals("INCOME", salary.path("type").asString());
+        assertEquals("ACTIVE", salary.path("status").asString());
+    }
+
+    @Test
+    void listIncludesInactiveCategories() throws Exception {
+        database.insertCategory(OWN_CATEGORY_ID, USER_ID, "Old", "EXPENSE", "ACTIVE");
+        database.execute("UPDATE categories SET status = 'INACTIVE' WHERE id = ?", OWN_CATEGORY_ID.toString());
+
+        HttpResponse<String> response = get();
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertEquals(1, body.size());
+        assertEquals("INACTIVE", body.get(0).path("status").asString());
+    }
+
+    @Test
+    void listExcludesAnotherUsersCategories() throws Exception {
+        database.insertCategory(OWN_CATEGORY_ID, USER_ID, "Mine", "EXPENSE", "ACTIVE");
+        database.insertCategory(OTHER_CATEGORY_ID, OTHER_USER_ID, "Theirs", "INCOME", "ACTIVE");
+
+        HttpResponse<String> response = get();
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = mapper.readTree(response.body());
+        assertEquals(1, body.size());
+        assertEquals("Mine", body.get(0).path("name").asString());
+        assertFalse(response.body().contains("Theirs"));
+    }
+
+    @Test
+    void listWithoutCategoriesAnswersEmptyArray() throws Exception {
+        database.insertCategory(OTHER_CATEGORY_ID, OTHER_USER_ID, "Theirs", "INCOME", "ACTIVE");
+
+        HttpResponse<String> response = get();
+
+        assertEquals(200, response.statusCode());
+        assertEquals("[]", response.body());
+    }
+
+    private HttpResponse<String> get() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/categories"))
+            .header("Accept", "application/json")
+            .GET()
+            .build();
+        return CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     private void assertProblem(HttpResponse<String> response, int status, String detail) throws Exception {
         assertEquals(status, response.statusCode());
         assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith("application/problem+json"));
