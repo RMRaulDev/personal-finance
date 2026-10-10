@@ -16,10 +16,17 @@ export interface FieldProps extends Omit<TextInputProps, 'style' | 'placeholderT
   error?: string;
   /** A real example input, never the label repeated. */
   placeholder?: string;
+  /** Input height: `md` (40, default) or `lg` (48, mobile forms where the field is the screen's focus). */
+  size?: 'md' | 'lg';
+  /** Fills the parent's width instead of stopping at the 320px default, as some screen designs ask. */
+  fullWidth?: boolean;
 }
 
+/** Field width cap of `r-field` in the web version, unless `fullWidth` lifts it. */
+const FIELD_MAX_WIDTH = 320;
+
 /** Equivalent to `r-field` with `r-field__label`, `r-input`, and `r-field__help` or `r-field__error`. */
-export function Field({ label, help, error, onFocus, onBlur, ...rest }: FieldProps) {
+export function Field({ label, help, error, size = 'md', fullWidth = false, onFocus, onBlur, ...rest }: FieldProps) {
   const theme = useTheme();
   const { colors } = theme;
   const [focused, setFocused] = useState(false);
@@ -28,7 +35,7 @@ export function Field({ label, help, error, onFocus, onBlur, ...rest }: FieldPro
   const message = invalid ? error : help;
 
   return (
-    <View style={{ flexDirection: 'column', gap: space[1], maxWidth: 320 }}>
+    <View style={{ flexDirection: 'column', gap: space[1], maxWidth: fullWidth ? undefined : FIELD_MAX_WIDTH }}>
       <Text nativeID={labelId} variant="body-sm" style={{ fontFamily: fontFamily.sans[500] }}>
         {label}
       </Text>
@@ -48,7 +55,7 @@ export function Field({ label, help, error, onFocus, onBlur, ...rest }: FieldPro
         }}
         style={[
           {
-            height: control.md,
+            height: control[size],
             paddingHorizontal: space[3],
             paddingVertical: 0,
             borderRadius: radius.md,

@@ -22,6 +22,11 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
    * but does not fire `onPress`.
    */
   inactive?: boolean;
+  /**
+   * Stretches the button across its parent column (the design's `width: 100%`). In a row, wrap it
+   * in a `flex: 1` view to give it the remaining width. Defaults to false: the button hugs its label.
+   */
+  fullWidth?: boolean;
 }
 
 const sizes = {
@@ -60,6 +65,7 @@ export function Button({
   variant = 'secondary',
   size = 'md',
   inactive = false,
+  fullWidth = false,
   onPress,
   onFocus,
   onBlur,
@@ -97,7 +103,7 @@ export function Button({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            alignSelf: 'flex-start',
+            alignSelf: fullWidth ? 'stretch' : 'flex-start',
             gap: space[2],
             height: sizing.height,
             paddingHorizontal: sizing.paddingHorizontal,

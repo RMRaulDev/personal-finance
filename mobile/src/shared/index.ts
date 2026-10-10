@@ -1,3 +1,4 @@
+export { DetailRow, type DetailRowProps } from './DetailRow';
 export { errorMessage } from './errorMessage';
 export { ListGroup, type ListGroupProps } from './ListGroup';
 export { Notice, type NoticeProps } from './Notice';
@@ -13,6 +14,7 @@ export { ScreenError, type ScreenErrorProps } from './ScreenError';
 export { ScreenLoading } from './ScreenLoading';
 export { SectionTitle, type SectionTitleProps } from './SectionTitle';
 export { Toast, type ToastProps } from './Toast';
+export { useKeyboardVisible } from './useKeyboardVisible';
 export { useMutationLock, type MutationLock } from './useMutationLock';
 export { useRefresh, type Refresh, type RefetchResult } from './useRefresh';
 export { useToast, type ToastAction, type ToastMessage } from './useToast';

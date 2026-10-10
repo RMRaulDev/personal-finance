@@ -1,3 +1,11 @@
+export { accountsQuery, listAccounts, type AccountResponse, type AccountStatus } from './accounts';
+export {
+  categoriesQuery,
+  listCategories,
+  type CategoryResponse,
+  type CategoryStatus,
+  type CategoryType,
+} from './categories';
 export type * from './common';
 export {
   dashboardQuery,
@@ -25,5 +33,20 @@ export {
   type PayOccurrenceVariables,
   type Recurrence,
 } from './obligations';
-export { cancelOperation, useCancelOperation } from './operations';
+export {
+  cancelOperation,
+  registerExpense,
+  registerIncome,
+  useCancelOperation,
+  useRegisterExpense,
+  useRegisterIncome,
+  type RegisterOperationRequest,
+  type RegisterOperationResponse,
+} from './operations';
 export { queryClient, queryKeys } from './queryClient';
+export {
+  completeInitialSetup,
+  useCompleteInitialSetup,
+  type CompleteInitialSetupRequest,
+  type CompleteInitialSetupResponse,
+} from './setup';

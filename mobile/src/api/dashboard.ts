@@ -74,9 +74,9 @@ export interface UpcomingCommitment {
 }
 
 /**
- * A recent active operation. Incomes and expenses have `account` and `category` and a null
- * `transfer`; transfers have `transfer` and null `account` and `category`. `obligation` is set
- * when the expense paid an obligation.
+ * A recent active operation. Incomes and expenses have `account` and a null `transfer`; their
+ * `category` is null when they were registered without one. Transfers have `transfer` and null
+ * `account` and `category`. `obligation` is set when the expense paid an obligation.
  */
 export interface RecentActivityItem {
   id: string;
