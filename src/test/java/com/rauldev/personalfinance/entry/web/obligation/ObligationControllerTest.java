@@ -489,7 +489,7 @@ class ObligationControllerTest {
         HttpResponse<String> response = send("GET", OBLIGATIONS, null);
 
         JsonNode item = mapper.readTree(response.body()).get(0);
-        assertEquals(List.of("id", "name", "amountCents", "account", "category", "recurrence", "status"),
+        assertEquals(List.of("id", "name", "amountCents", "account", "category", "recurrence", "status", "nextDueDate", "overdueCount", "archivedOn"),
             fieldNames(item));
         assertEquals(OBLIGATION_ID.toString(), item.path("id").asString());
         assertEquals(2500, item.path("amountCents").asLong());
@@ -524,7 +524,7 @@ class ObligationControllerTest {
 
         assertEquals(200, response.statusCode());
         JsonNode body = mapper.readTree(response.body());
-        assertEquals(List.of("id", "name", "amountCents", "account", "category", "recurrence", "status"),
+        assertEquals(List.of("id", "name", "amountCents", "account", "category", "recurrence", "status", "nextDueDate", "overdueCount", "archivedOn"),
             fieldNames(body));
         assertEquals(OBLIGATION_ID.toString(), body.path("id").asString());
         assertEquals("Rent", body.path("name").asString());

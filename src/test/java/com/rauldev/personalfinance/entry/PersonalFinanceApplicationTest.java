@@ -30,6 +30,7 @@ import com.rauldev.personalfinance.application.usecase.ExpenseRegistration;
 import com.rauldev.personalfinance.application.usecase.GetAccount;
 import com.rauldev.personalfinance.application.usecase.GetDashboard;
 import com.rauldev.personalfinance.application.usecase.GetObligation;
+import com.rauldev.personalfinance.application.usecase.GetObligationOccurrences;
 import com.rauldev.personalfinance.application.usecase.GetOperationDetails;
 import com.rauldev.personalfinance.application.usecase.GetOperationHistory;
 import com.rauldev.personalfinance.application.usecase.ListAccounts;
@@ -121,7 +122,8 @@ class PersonalFinanceApplicationTest {
             ModifyObligation.class, ArchiveObligation.class, SkipOccurrence.class,
             SkipOverdueOccurrences.class, ReopenOccurrence.class, PayOccurrence.class,
             GetDashboard.class, JdbcDashboardQueryAdapter.class,
-            JdbcObligationQueryAdapter.class, ListObligations.class, GetObligation.class);
+            JdbcObligationQueryAdapter.class, ListObligations.class, GetObligation.class,
+            GetObligationOccurrences.class);
 
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);

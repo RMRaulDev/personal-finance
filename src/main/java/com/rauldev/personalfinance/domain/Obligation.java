@@ -1,9 +1,11 @@
 package com.rauldev.personalfinance.domain;
 
 import java.time.LocalDate;
+import java.text.Normalizer;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -14,6 +16,8 @@ import java.util.UUID;
  *
  * The aggregate does not own its {@link OccurrenceResolution}s. Methods that depend on them receive {@code today}
  * and every resolution of this obligation, and derive the overdue occurrences from its current calendar.
+ *
+ * Names are unique per user ignoring case ({@link #isSameName}).
  */
 public final class Obligation {
     private static final long MAX_START_DATE_DAYS_IN_PAST = 31;
@@ -26,9 +30,23 @@ public final class Obligation {
     private UUID categoryId;
     private Recurrence recurrence;
     private ObligationStatus status;
+    private LocalDate archivedOn;
 
+    /**
+     * Reconstitutes an obligation without an archive date: an active one, or one archived before the archive date
+     * was recorded.
+     */
     public Obligation(UUID id, UUID userId, String name, Money amount, UUID accountId, UUID categoryId,
                       Recurrence recurrence, ObligationStatus status) {
+        this(id, userId, name, amount, accountId, categoryId, recurrence, status, null);
+    }
+
+    /**
+     * @param archivedOn the day the obligation was archived, or {@code null} if it is active or was archived before
+     *                   the archive date was recorded; only an archived obligation can have one
+     */
+    public Obligation(UUID id, UUID userId, String name, Money amount, UUID accountId, UUID categoryId,
+                      Recurrence recurrence, ObligationStatus status, LocalDate archivedOn) {
         this.id = Objects.requireNonNull(id, "Obligation id cannot be null");
         this.userId = Objects.requireNonNull(userId, "User id cannot be null");
         this.name = validateName(name);
@@ -37,6 +55,10 @@ public final class Obligation {
         this.categoryId = Objects.requireNonNull(categoryId, "Category id cannot be null");
         this.recurrence = Objects.requireNonNull(recurrence, "Recurrence cannot be null");
         this.status = Objects.requireNonNull(status, "Obligation status cannot be null");
+        if (archivedOn != null && status != ObligationStatus.ARCHIVED) {
+            throw new IllegalArgumentException("Only an archived obligation can have an archive date");
+        }
+        this.archivedOn = archivedOn;
     }
 
     public static Obligation create(Account account, Category category, String name, Money amount,
@@ -81,6 +103,29 @@ public final class Obligation {
 
     public ObligationStatus status() {
         return status;
+    }
+
+    /**
+     * @return the day the obligation was archived; empty if it is active or was archived before the archive date
+     *         was recorded
+     */
+    public Optional<LocalDate> archivedOn() {
+        return Optional.ofNullable(archivedOn);
+    }
+
+    /**
+     * Tells whether two obligation names collide: names are unique per user ignoring case. Both names are
+     * normalized to Unicode NFC and then lowercased with {@link Locale#ROOT}, so composed and decomposed accents
+     * are the same and case folding is Unicode-aware ({@code "Educación"} and {@code "EDUCACIÓN"} collide).
+     */
+    public static boolean isSameName(String name, String otherName) {
+        Objects.requireNonNull(name, "Obligation name cannot be null");
+        Objects.requireNonNull(otherName, "Other obligation name cannot be null");
+        return comparableName(name).equals(comparableName(otherName));
+    }
+
+    private static String comparableName(String name) {
+        return Normalizer.normalize(name, Normalizer.Form.NFC).toLowerCase(Locale.ROOT);
     }
 
     public void rename(String name) {
@@ -165,9 +210,13 @@ public final class Obligation {
         this.recurrence = recurrence;
     }
 
+    /**
+     * Archives the obligation and records {@code today} as its archive date.
+     */
     public void archive(LocalDate today, Collection<OccurrenceResolution> resolutions) {
         ensureSchedulable(today, resolutions);
         status = ObligationStatus.ARCHIVED;
+        archivedOn = today;
     }
 
     /**
@@ -200,15 +249,6 @@ public final class Obligation {
     private static long overdueCount(Recurrence recurrence, LocalDate today, Set<LocalDate> resolvedDates) {
         OverdueRange range = OverdueRange.of(recurrence, today);
         return recurrence.countUnresolvedBetween(range.from(), range.to(), resolvedDates);
-    }
-
-    /**
-     * The single definition of the overdue range: from the start date through yesterday, both inclusive.
-     */
-    private record OverdueRange(LocalDate from, LocalDate to) {
-        static OverdueRange of(Recurrence recurrence, LocalDate today) {
-            return new OverdueRange(recurrence.startDate(), today.minusDays(1));
-        }
     }
 
     /**

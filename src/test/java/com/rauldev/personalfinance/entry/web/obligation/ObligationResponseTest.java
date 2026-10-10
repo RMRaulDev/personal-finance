@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import com.rauldev.personalfinance.application.readmodel.AccountSummary;
 import com.rauldev.personalfinance.application.readmodel.CategorySummary;
 import com.rauldev.personalfinance.application.readmodel.ObligationDetails;
+import com.rauldev.personalfinance.application.readmodel.ObligationOverview;
 import com.rauldev.personalfinance.domain.Frequency;
 import com.rauldev.personalfinance.domain.Money;
 import com.rauldev.personalfinance.domain.ObligationStatus;
@@ -29,23 +30,29 @@ class ObligationResponseTest {
         ObligationDetails details = new ObligationDetails(ID, "Rent", Money.ofCents(2500),
             new AccountSummary(ACCOUNT_ID, "Wallet"), new CategorySummary(CATEGORY_ID, "Housing"),
             new Recurrence(Frequency.MONTHLY, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 12, 20)),
-            ObligationStatus.ACTIVE);
+            ObligationStatus.ACTIVE, null);
+        ObligationOverview overview = new ObligationOverview(details, LocalDate.of(2026, 10, 20), 0);
 
         assertEquals(new ObligationResponse(ID, "Rent", 2500,
             new AccountSummaryResponse(ACCOUNT_ID, "Wallet"), new CategorySummaryResponse(CATEGORY_ID, "Housing"),
-            new RecurrenceResponse("MONTHLY", LocalDate.of(2026, 10, 20), LocalDate.of(2026, 12, 20)), "ACTIVE"),
-            ObligationResponse.from(details));
+            new RecurrenceResponse("MONTHLY", LocalDate.of(2026, 10, 20), LocalDate.of(2026, 12, 20)), "ACTIVE",
+            LocalDate.of(2026, 10, 20), 0, null),
+            ObligationResponse.from(overview));
     }
 
     @Test
     void mapsArchivedStatusAndNullEndDate() {
         ObligationDetails details = new ObligationDetails(ID, "Rent", Money.ofCents(1),
             new AccountSummary(ACCOUNT_ID, "Wallet"), new CategorySummary(CATEGORY_ID, "Housing"),
-            new Recurrence(Frequency.YEARLY, LocalDate.of(2026, 10, 20), null), ObligationStatus.ARCHIVED);
+            new Recurrence(Frequency.YEARLY, LocalDate.of(2026, 10, 20), null), ObligationStatus.ARCHIVED,
+            LocalDate.of(2026, 10, 5));
 
-        ObligationResponse response = ObligationResponse.from(details);
+        ObligationResponse response = ObligationResponse.from(new ObligationOverview(details, null, 0));
 
         assertEquals("ARCHIVED", response.status());
+        assertNull(response.nextDueDate());
+        assertEquals(0, response.overdueCount());
+        assertEquals(LocalDate.of(2026, 10, 5), response.archivedOn());
         assertEquals(1, response.amountCents());
         assertNull(response.recurrence().endDate());
     }

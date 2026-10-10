@@ -15,8 +15,9 @@ import java.util.Set;
  * Date {@code n} (n = 0, 1, 2, ...) is always computed from the anchor, never from the previous date, so month-end
  * and leap-year clamping never accumulates. Every operation is pure: {@code countBetween} and {@code isScheduled}
  * are O(1), {@code countUnresolvedBetween} is O(R) with R = resolved dates, {@code datesBetween} is O(k) with
- * k = returned dates, and {@code unresolvedDatesBetween} is O(k) with k = scheduled dates in the range, because it
- * enumerates them all before filtering.
+ * k = returned dates, {@code unresolvedDatesBetween} is O(k) with k = scheduled dates in the range, because it
+ * enumerates them all before filtering, and {@code firstDatesOnOrAfterExcluding} visits at most
+ * {@code limit + excluded.size()} dates.
  */
 public final class Recurrence {
     private static final long WEEKLY_STEP_DAYS = 7;
@@ -115,6 +116,39 @@ public final class Recurrence {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Lists the first {@code limit} scheduled dates on or after {@code from} that are not in {@code excluded}, in
+     * ascending order. It works on calendars without an end date and visits at most
+     * {@code limit + excluded.size()} dates; it returns fewer dates when the calendar ends first.
+     */
+    public List<LocalDate> firstDatesOnOrAfterExcluding(LocalDate from, Set<LocalDate> excluded, int limit) {
+        Objects.requireNonNull(from, "From date cannot be null");
+        Objects.requireNonNull(excluded, "Excluded dates cannot be null");
+        if (limit < 1) {
+            throw new IllegalArgumentException("Limit must be greater than zero");
+        }
+        LocalDate lower = from.isAfter(startDate) ? from : startDate;
+        if (endDate != null && lower.isAfter(endDate)) {
+            return List.of();
+        }
+        long index = lastIndexOnOrBefore(lower);
+        if (dateAt(index).isBefore(lower)) {
+            index++;
+        }
+        List<LocalDate> dates = new ArrayList<>();
+        while (dates.size() < limit && (frequency != Frequency.ONCE || index == 0)) {
+            LocalDate date = dateAt(index);
+            if (endDate != null && date.isAfter(endDate)) {
+                break;
+            }
+            if (!excluded.contains(date)) {
+                dates.add(date);
+            }
+            index++;
+        }
+        return List.copyOf(dates);
     }
 
     /**

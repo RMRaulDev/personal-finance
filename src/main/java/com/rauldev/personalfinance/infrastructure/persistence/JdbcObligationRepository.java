@@ -26,8 +26,8 @@ public final class JdbcObligationRepository implements ObligationRepository {
     private static final String DUPLICATE_NAME_CONSTRAINT_COLUMNS = "obligations.user_id, obligations.name";
 
     private static final String SELECT_COLUMNS =
-        "SELECT id, user_id, name, amount, account_id, category_id, frequency, start_date, end_date, status "
-            + "FROM obligations ";
+        "SELECT id, user_id, name, amount, account_id, category_id, frequency, start_date, end_date, status, "
+            + "archived_on FROM obligations ";
 
     private final TransactionConnectionHolder connectionHolder;
 
@@ -40,8 +40,8 @@ public final class JdbcObligationRepository implements ObligationRepository {
         Objects.requireNonNull(obligation, "Obligation cannot be null");
 
         String sql = "INSERT INTO obligations "
-            + "(id, user_id, name, amount, account_id, category_id, frequency, start_date, end_date, status) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "(id, user_id, name, amount, account_id, category_id, frequency, start_date, end_date, status, "
+            + "archived_on) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             Recurrence recurrence = obligation.recurrence();
@@ -55,6 +55,7 @@ public final class JdbcObligationRepository implements ObligationRepository {
             statement.setString(8, recurrence.startDate().toString());
             statement.setString(9, recurrence.endDate().map(LocalDate::toString).orElse(null));
             statement.setString(10, obligation.status().name());
+            statement.setString(11, obligation.archivedOn().map(LocalDate::toString).orElse(null));
             statement.executeUpdate();
         } catch (SQLException e) {
             if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
@@ -88,41 +89,53 @@ public final class JdbcObligationRepository implements ObligationRepository {
         }
     }
 
+    /**
+     * Compares in Java with {@link Obligation#isSameName} (Unicode-aware), not in SQL: SQLite's {@code NOCASE} and
+     * {@code lower()} only fold ASCII letters. It reads every name of the user.
+     */
     @Override
     public boolean existsByUserIdAndName(UUID userId, String name) {
         Objects.requireNonNull(userId, "User id cannot be null");
         Objects.requireNonNull(name, "Obligation name cannot be null");
 
-        String sql = "SELECT 1 FROM obligations WHERE user_id = ? AND name = ? LIMIT 1";
+        String sql = "SELECT name FROM obligations WHERE user_id = ?";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, userId.toString());
-            statement.setString(2, name);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next();
-            }
+            return anyNameMatches(statement, name);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to check obligation existence by user id and name", e);
         }
     }
 
+    /**
+     * Compares in Java, like {@link #existsByUserIdAndName}.
+     */
     @Override
     public boolean existsByUserIdAndNameAndIdNot(UUID userId, String name, UUID obligationId) {
         Objects.requireNonNull(userId, "User id cannot be null");
         Objects.requireNonNull(name, "Obligation name cannot be null");
         Objects.requireNonNull(obligationId, "Obligation id cannot be null");
 
-        String sql = "SELECT 1 FROM obligations WHERE user_id = ? AND name = ? AND id <> ? LIMIT 1";
+        String sql = "SELECT name FROM obligations WHERE user_id = ? AND id <> ?";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, userId.toString());
-            statement.setString(2, name);
-            statement.setString(3, obligationId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next();
-            }
+            statement.setString(2, obligationId.toString());
+            return anyNameMatches(statement, name);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to check obligation existence by user id and name excluding id", e);
+        }
+    }
+
+    private static boolean anyNameMatches(PreparedStatement statement, String name) throws SQLException {
+        try (ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                if (Obligation.isSameName(resultSet.getString("name"), name)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -131,7 +144,7 @@ public final class JdbcObligationRepository implements ObligationRepository {
         Objects.requireNonNull(obligation, "Obligation cannot be null");
 
         String sql = "UPDATE obligations SET name = ?, amount = ?, account_id = ?, category_id = ?, frequency = ?, "
-            + "start_date = ?, end_date = ?, status = ? WHERE id = ?";
+            + "start_date = ?, end_date = ?, status = ?, archived_on = ? WHERE id = ?";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             Recurrence recurrence = obligation.recurrence();
@@ -143,7 +156,8 @@ public final class JdbcObligationRepository implements ObligationRepository {
             statement.setString(6, recurrence.startDate().toString());
             statement.setString(7, recurrence.endDate().map(LocalDate::toString).orElse(null));
             statement.setString(8, obligation.status().name());
-            statement.setString(9, obligation.id().toString());
+            statement.setString(9, obligation.archivedOn().map(LocalDate::toString).orElse(null));
+            statement.setString(10, obligation.id().toString());
             statement.executeUpdate();
         } catch (SQLException e) {
             if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
@@ -170,9 +184,11 @@ public final class JdbcObligationRepository implements ObligationRepository {
             String endDateValue = resultSet.getString("end_date");
             LocalDate endDate = endDateValue == null ? null : LocalDate.parse(endDateValue);
             ObligationStatus status = ObligationStatus.valueOf(resultSet.getString("status"));
+            String archivedOnValue = resultSet.getString("archived_on");
+            LocalDate archivedOn = archivedOnValue == null ? null : LocalDate.parse(archivedOnValue);
 
             Recurrence recurrence = new Recurrence(frequency, startDate, endDate);
-            return new Obligation(id, userId, name, amount, accountId, categoryId, recurrence, status);
+            return new Obligation(id, userId, name, amount, accountId, categoryId, recurrence, status, archivedOn);
         } catch (RuntimeException e) {
             throw new CorruptedPersistedDataException("obligations", rowId, e);
         }

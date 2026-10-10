@@ -68,8 +68,11 @@ public final class ModifyObligation {
                 obligation.id());
 
             if (command.name() != null) {
+                // An unchanged name is not checked, so a case-variant duplicate stored before names were compared
+                // ignoring case does not make an unrelated change fail.
+                boolean nameChanged = !command.name().equals(obligation.name());
                 obligation.rename(command.name());
-                if (obligationRepository.existsByUserIdAndNameAndIdNot(
+                if (nameChanged && obligationRepository.existsByUserIdAndNameAndIdNot(
                     command.userId(), command.name(), obligation.id())) {
                     throw new BusinessRuleViolationException(BusinessRuleCode.OBLIGATION_NAME_ALREADY_EXISTS,
                         ApplicationConstants.OBLIGATION_NAME_ALREADY_EXISTS_MESSAGE);

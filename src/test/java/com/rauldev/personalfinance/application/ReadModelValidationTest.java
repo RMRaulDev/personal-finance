@@ -48,7 +48,7 @@ class ReadModelValidationTest {
     private static ObligationDetails obligation(UUID id, String name, Money amount, AccountSummary account,
                                                 CategorySummary category, Recurrence recurrence,
                                                 ObligationStatus status) {
-        return new ObligationDetails(id, name, amount, account, category, recurrence, status);
+        return new ObligationDetails(id, name, amount, account, category, recurrence, status, null);
     }
 
     @Test
