@@ -27,6 +27,7 @@ You implement the mobile app of personal-finance (React Native + Expo, TypeScrip
 ## Rules that are easy to break
 
 * **Comments are mandatory and in English.** Every exported declaration gets a JSDoc that says what it is and what it is for; internal functions and components too. Document props whose name and type do not say everything (defaults, units, design system rules). Inline `//` comments explain *why*, not what. Update comments together with the code.
+* **Architecture** (`mobile.md` → Architecture): `app → features → api / lib / design-system`, `api → lib`. Routes only compose features; a feature never imports another feature; outside a module import only its `index.ts`. Server data goes through TanStack Query hooks; mutations never retry and disable their submit button while pending. ESLint enforces the import rules: never silence them with `eslint-disable`; move the code to the right layer instead.
 * **Design system only.** Colors from `useTheme().colors`; spacing, radii, sizes, and fonts from the tokens. No literal values except `borderWidth`. Never `primitives` in UI code, never branch on `scheme` to choose colors.
 * One `primary` button per screen; cards with border, never shadow; weight ≤ 600; color never carries meaning alone; readable text and inputs ≥ 16 px.
 * Anything the design system marks as pending does not exist. Do not invent it; report it.
