@@ -3,13 +3,14 @@ import { Text as RNText, View } from 'react-native';
 import { useTheme } from './theme';
 import { borderWidth, fontFamily, radius, space, textStyles, type Role } from './tokens';
 
+/** `Badge` props: the status text and, when it applies, its color role. */
 export interface BadgeProps {
-  /** 1–2 palabras que dicen el estado: el color nunca carga el significado solo. */
+  /** 1–2 words that state the status: color never carries the meaning alone. */
   children: string;
   role?: Role;
 }
 
-/** Equivale a `r-badge`: etiqueta de estado o categoría, corta y no interactiva. */
+/** Equivalent to `r-badge`: a short, non-interactive status or category label. */
 export function Badge({ children, role }: BadgeProps) {
   const { colors } = useTheme();
   const tone = role

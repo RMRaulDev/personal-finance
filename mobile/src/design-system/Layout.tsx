@@ -3,18 +3,20 @@ import { View, type ViewProps } from 'react-native';
 import { useTheme } from './theme';
 import { space } from './tokens';
 
-/** Equivale a `r-root`: fondo de página. Va una vez, en la raíz de cada pantalla. */
+/** Equivalent to `r-root`: page background. Used once, at the root of each screen. */
 export function Root({ style, ...rest }: ViewProps) {
   const { colors } = useTheme();
   return <View style={[{ flex: 1, backgroundColor: colors.surface.page }, style]} {...rest} />;
 }
 
-/** Equivale a `r-stack`: columna con gap 16. */
+/** Equivalent to `r-stack`: a column with a 16 gap. */
 export function Stack({ style, ...rest }: ViewProps) {
   return <View style={[{ flexDirection: 'column', gap: space[4] }, style]} {...rest} />;
 }
 
-/** Equivale a `r-row`: fila con wrap, centrada en vertical y gap 12. */
+/** Equivalent to `r-row`: a wrapping row, vertically centered, with a 12 gap. */
 export function Row({ style, ...rest }: ViewProps) {
-  return <View style={[{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space[3] }, style]} {...rest} />;
+  return (
+    <View style={[{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space[3] }, style]} {...rest} />
+  );
 }

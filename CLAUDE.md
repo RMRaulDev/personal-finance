@@ -6,10 +6,11 @@ Project context, architecture, and rules live in `.github/` and are shared with 
 @.github/instructions/architecture.md
 @.github/instructions/git.md
 
-Read the other guides in `.github/instructions/` (`java.md`, `domain.md`, `application.md`, `testing.md`) before working on the area they cover.
+Read the other guides in `.github/instructions/` (`java.md`, `domain.md`, `application.md`, `testing.md`, `mobile.md`) before working on the area they cover.
 
 ## Commands
 
+* Mobile app (`mobile/`, see `mobile.md`): quality gate `npm --prefix mobile run check`; dev server `cd mobile && npx expo start`. Node must be on the shell's `PATH` (it is installed with nvm).
 * Build and run all tests: `mvn test`
 * Run a single test class: `mvn test -Dtest=RegisterExpenseTest`
 * Run the app: `PERSONAL_FINANCE_SQLITE_URL=jdbc:sqlite:/path/to/db PERSONAL_FINANCE_SINGLE_USER_ID=<uuid> mvn spring-boot:run` (the canonical `PERSONALFINANCE_SQLITE_URL` and `--personal-finance.sqlite.url=...` also work; `PERSONAL_FINANCE_TIME_ZONE` optionally overrides the default `America/Mexico_City`). Both the SQLite URL and the single user id are required. The database must be initialized first from `src/main/resources/db/schema.sql`; the app does not create the schema or the user.
@@ -41,5 +42,14 @@ Use it only when the change adds no rule and changes no behavior: renames, messa
 3. If the change renames or moves a public class, method, or file, run **`docs-maintainer`** too.
 
 If in doubt, use the full flow.
+
+### Mobile flow (any change under `mobile/`)
+
+1. **`mobile-implementer`** implements the change in `mobile/`, fully commented, and runs `npm --prefix mobile run check`.
+2. **`mobile-reviewer`** reviews the diff. Findings marked Blocking or Important go back to step 1.
+3. **`docs-maintainer`** brings the documentation in line with the change.
+4. `npm --prefix mobile run check` must pass.
+
+There are no mobile tests yet, so `test-writer` does not take part in this flow.
 
 The developer creates all commits, tags, and pushes manually (see `git.md`).

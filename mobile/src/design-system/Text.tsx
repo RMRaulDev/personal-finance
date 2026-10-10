@@ -3,8 +3,10 @@ import { Text as RNText, useWindowDimensions, type TextProps as RNTextProps } fr
 import { useTheme, type Theme } from './theme';
 import { codeScale, fontFamily, resolveFluid, textStyles, type Role, type TextVariant } from './tokens';
 
+/** Text color: one of the `--text-*` tokens or a role's `--text-{role}`. */
 export type TextColor = 'primary' | 'secondary' | 'disabled' | Role;
 
+/** Resolves a `TextColor` to its value in the active theme. */
 export function resolveTextColor(theme: Theme, color: TextColor): string {
   switch (color) {
     case 'primary':
@@ -16,14 +18,16 @@ export function resolveTextColor(theme: Theme, color: TextColor): string {
   }
 }
 
+/** `Text` props: the React Native props plus the design system type style and color. */
 export interface TextProps extends RNTextProps {
-  /** `display`, `title-1` y `title-2` son fluidos y solo de página; un componente nunca los usa. */
+  /** `display`, `title-1`, and `title-2` are fluid and page-level only; a component never uses them. */
   variant?: TextVariant;
   color?: TextColor;
-  /** Cifras de ancho fijo para tablas, métricas y valores que cambian. */
+  /** Fixed-width digits for tables, metrics, and changing values. */
   tabular?: boolean;
 }
 
+/** Design system text: applies the font, size, line height, tracking, and color of a type style. */
 export function Text({ variant = 'body', color = 'primary', tabular, style, ...rest }: TextProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -49,12 +53,13 @@ export function Text({ variant = 'body', color = 'primary', tabular, style, ...r
   );
 }
 
+/** `Code` props: the React Native props plus the size of the surrounding text. */
 export interface CodeProps extends RNTextProps {
-  /** Tamaño del texto que lo rodea; el código mide 0.875 de él. */
+  /** Size of the surrounding text; code is 0.875 of it. */
   parentSize?: number;
 }
 
-/** Texto monoespaciado para código y datos, pensado para ir anidado dentro de `Text`. */
+/** Monospaced text for code and data, meant to be nested inside `Text`. */
 export function Code({ parentSize = textStyles.body.size, style, ...rest }: CodeProps) {
   return <RNText style={[{ fontFamily: fontFamily.mono, fontSize: parentSize * codeScale }, style]} {...rest} />;
 }

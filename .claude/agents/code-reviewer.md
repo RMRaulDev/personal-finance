@@ -37,6 +37,7 @@ Read `.github/copilot-instructions.md` and every guide in `.github/instructions/
    * `src/main/**` and `pom.xml` → `code-implementer`.
    * `src/test/**` → `test-writer`.
    * Markdown in `.github/`, `docs/`, `CLAUDE.md`, `.claude/agents/` → `docs-maintainer`.
+   * `mobile/**` → `mobile-implementer`, reviewed by `mobile-reviewer`. Leave mobile changes out of this review.
    Flag any change that mixes these without a reason, e.g. production code edited while "only adding tests", or code edited as part of a docs sync.
 8. **Build**: run `mvn -q test` and report the result.
 

@@ -73,3 +73,4 @@ Detailed project instructions are organized into the following files:
 * [`domain.md`](./instructions/domain.md) — Domain model and business invariants.
 * [`application.md`](./instructions/application.md) — Application layer and use case guidelines.
 * [`testing.md`](./instructions/testing.md) — Testing strategy, conventions, and quality rules.
+* [`mobile.md`](./instructions/mobile.md) — React Native / Expo app in `mobile/`: TypeScript, comments, design system, and quality tools.

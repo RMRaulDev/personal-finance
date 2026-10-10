@@ -5,17 +5,18 @@ import { Text } from './Text';
 import { useTheme } from './theme';
 import { borderWidth, radius, space } from './tokens';
 
+/** `Card` props: title, body, and optional actions. */
 export interface CardProps extends ViewProps {
   title: string;
-  /** Cuerpo en `body` con `text-secondary`. Un string se envuelve; cualquier otro nodo se pinta tal cual. */
+  /** Body in `body` with `text-secondary`. A string is wrapped; any other node renders as is. */
   children?: ReactNode;
-  /** Botones `secondary` o `ghost` en tamaño `sm`; nunca `primary`. */
+  /** `secondary` or `ghost` buttons with size `sm`; never `primary`. */
   actions?: ReactNode;
-  /** Padding 16 en lugar de 24, para layouts densos. */
+  /** Padding 16 instead of 24, for dense layouts. */
   dense?: boolean;
 }
 
-/** Equivale a `r-card`: se delimita con borde, nunca con sombra. */
+/** Equivalent to `r-card`: delimited by a border, never by a shadow. */
 export function Card({ title, children, actions, dense = false, style, ...rest }: CardProps) {
   const { colors } = useTheme();
 
@@ -48,7 +49,9 @@ export function Card({ title, children, actions, dense = false, style, ...rest }
           )}
         </View>
       )}
-      {actions !== undefined && <View style={{ marginTop: space[4], flexDirection: 'row', gap: space[2] }}>{actions}</View>}
+      {actions !== undefined && (
+        <View style={{ marginTop: space[4], flexDirection: 'row', gap: space[2] }}>{actions}</View>
+      )}
     </View>
   );
 }

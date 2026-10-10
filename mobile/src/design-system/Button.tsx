@@ -5,18 +5,21 @@ import { focusRing } from './focus';
 import { useTheme, type Theme } from './theme';
 import { borderWidth, control, fontFamily, radius, space } from './tokens';
 
+/** Button variant: `primary` (one per screen), `secondary` (default), or `ghost` (tertiary). */
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+/** Button size: 32, 40, or 48 high. */
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
+/** `Button` props: the label, variant, size, and event handler. */
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled' | 'style'> {
-  /** Verbo primero, 1–3 palabras, sentence case. */
+  /** Verb first, 1–3 words, sentence case. */
   children: string;
-  /** `primary` solo una vez por vista. Por defecto `secondary`. */
+  /** `primary` only once per screen. Defaults to `secondary`. */
   variant?: ButtonVariant;
   size?: ButtonSize;
   /**
-   * Evítalo. Equivale a `aria-disabled="true"`: el botón sigue siendo enfocable y anunciado,
-   * pero no dispara `onPress`.
+   * Avoid it. Equivalent to `aria-disabled="true"`: the button stays focusable and announced,
+   * but does not fire `onPress`.
    */
   inactive?: boolean;
 }
@@ -51,6 +54,7 @@ function variantColors(theme: Theme, variant: ButtonVariant, pressed: boolean) {
   }
 }
 
+/** Equivalent to `r-btn`: triggers an action. While pressed it takes the web version's hover color. */
 export function Button({
   children,
   variant = 'secondary',

@@ -6,18 +6,19 @@ import { Text } from './Text';
 import { useTheme } from './theme';
 import { borderWidth, control, fontFamily, radius, space, textStyles } from './tokens';
 
+/** `Field` props: the `TextInput` props plus label, help, and error. */
 export interface FieldProps extends Omit<TextInputProps, 'style' | 'placeholderTextColor'> {
-  /** Etiqueta visible, siempre. */
+  /** Visible label, always. */
   label: string;
-  /** Texto de ayuda bajo el campo. Se oculta si hay error. */
+  /** Help text below the field. Hidden when there is an error. */
   help?: string;
-  /** Qué pasó y qué hacer, en una oración. Marca el campo como inválido. */
+  /** What happened and what to do, in one sentence. Marks the field as invalid. */
   error?: string;
-  /** Un ejemplo real de entrada, nunca la etiqueta repetida. */
+  /** A real example input, never the label repeated. */
   placeholder?: string;
 }
 
-/** Equivale a `r-field` con `r-field__label`, `r-input` y `r-field__help` o `r-field__error`. */
+/** Equivalent to `r-field` with `r-field__label`, `r-input`, and `r-field__help` or `r-field__error`. */
 export function Field({ label, help, error, onFocus, onBlur, ...rest }: FieldProps) {
   const theme = useTheme();
   const { colors } = theme;
@@ -56,7 +57,7 @@ export function Field({ label, help, error, onFocus, onBlur, ...rest }: FieldPro
             backgroundColor: colors.surface.raised,
             color: colors.text.primary,
             fontFamily: fontFamily.sans[400],
-            // Nunca menos de 16px: iOS hace zoom bajo 16px.
+            // Never below 16px: iOS zooms in on inputs smaller than 16px.
             fontSize: textStyles.body.size,
           },
           focused && focusRing(theme),
