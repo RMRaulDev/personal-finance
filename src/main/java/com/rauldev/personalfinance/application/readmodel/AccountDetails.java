@@ -11,7 +11,8 @@ public record AccountDetails(
     UUID userId,
     String name,
     Money balance,
-    AccountStatus status
+    AccountStatus status,
+    Money openingBalance
 ) {
     public AccountDetails {
         Objects.requireNonNull(id, "Account id cannot be null");
@@ -22,5 +23,6 @@ public record AccountDetails(
         }
         Objects.requireNonNull(balance, "Account balance cannot be null");
         Objects.requireNonNull(status, "Account status cannot be null");
+        Objects.requireNonNull(openingBalance, "Account opening balance cannot be null");
     }
 }

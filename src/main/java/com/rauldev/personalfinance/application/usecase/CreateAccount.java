@@ -31,7 +31,7 @@ public final class CreateAccount {
                     ApplicationConstants.ACCOUNT_NAME_ALREADY_EXISTS_MESSAGE);
             }
 
-            Account account = new Account(command.userId(), command.name());
+            Account account = new Account(command.userId(), command.name(), command.openingBalance());
             accountRepository.create(account);
             return account.id();
         });

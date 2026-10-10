@@ -33,7 +33,7 @@ public final class JdbcAccountQueryAdapter implements AccountQueryPort {
         Objects.requireNonNull(accountId, "Account id cannot be null");
         Objects.requireNonNull(userId, "User id cannot be null");
 
-        String sql = "SELECT id, user_id, name, balance, status FROM accounts WHERE id = ? AND user_id = ?";
+        String sql = "SELECT id, user_id, name, opening_balance, balance, status FROM accounts WHERE id = ? AND user_id = ?";
 
         if (connectionHolder.hasActiveTransaction()) {
             Connection connection = connectionHolder.get();
@@ -51,7 +51,7 @@ public final class JdbcAccountQueryAdapter implements AccountQueryPort {
     public List<AccountDetails> findByUserId(UUID userId) {
         Objects.requireNonNull(userId, "User id cannot be null");
 
-        String sql = "SELECT id, user_id, name, balance, status FROM accounts WHERE user_id = ? ORDER BY name, id";
+        String sql = "SELECT id, user_id, name, opening_balance, balance, status FROM accounts WHERE user_id = ? ORDER BY name, id";
 
         if (connectionHolder.hasActiveTransaction()) {
             Connection connection = connectionHolder.get();
@@ -103,8 +103,9 @@ public final class JdbcAccountQueryAdapter implements AccountQueryPort {
             String name = resultSet.getString("name");
             Money balance = Money.ofCents(resultSet.getLong("balance"));
             AccountStatus status = AccountStatus.valueOf(resultSet.getString("status"));
+            Money openingBalance = Money.ofCents(resultSet.getLong("opening_balance"));
 
-            return new AccountDetails(id, userId, name, balance, status);
+            return new AccountDetails(id, userId, name, balance, status, openingBalance);
         } catch (RuntimeException e) {
             throw new CorruptedPersistedDataException("accounts", rowId, e);
         }

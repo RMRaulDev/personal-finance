@@ -14,7 +14,7 @@ class CreateAccountRequestTest {
 
     @Test
     void passesNameAndUserToCommand() {
-        CreateAccountCommand command = new CreateAccountRequest("Wallet").toCommand(USER_ID);
+        CreateAccountCommand command = new CreateAccountRequest("Wallet", 0L).toCommand(USER_ID);
 
         assertEquals(USER_ID, command.userId());
         assertEquals("Wallet", command.name());
@@ -23,7 +23,7 @@ class CreateAccountRequestTest {
     @Test
     void rejectsMissingName() {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-            () -> new CreateAccountRequest(null).toCommand(USER_ID));
+            () -> new CreateAccountRequest(null, 0L).toCommand(USER_ID));
 
         assertEquals("Field 'name' is required", e.getMessage());
     }

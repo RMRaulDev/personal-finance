@@ -155,14 +155,17 @@ class AccountControllerTest {
     }
 
     @Test
-    void getsAccountWithExactlyIdNameBalanceCentsAndStatus() throws Exception {
+    void getsAccountWithExactlyIdNameBalanceCentsOpeningBalanceCentsAndStatus() throws Exception {
         database.insertAccount(OWN_ACCOUNT_ID, USER_ID, "Wallet", 123456, "ACTIVE");
+        database.execute("UPDATE accounts SET opening_balance = ? WHERE id = ?", 100000, OWN_ACCOUNT_ID.toString());
 
         HttpResponse<String> response = send("GET", "/api/v1/accounts/" + OWN_ACCOUNT_ID, null);
 
         assertEquals(200, response.statusCode());
         JsonNode body = mapper.readTree(response.body());
-        assertEquals(4, body.size());
+        assertEquals(5, body.size());
+        assertEquals(100000L, body.path("openingBalanceCents").asLong());
+        assertTrue(body.path("openingBalanceCents").isIntegralNumber());
         assertEquals(OWN_ACCOUNT_ID.toString(), body.path("id").asString());
         assertEquals("Wallet", body.path("name").asString());
         assertEquals(123456L, body.path("balanceCents").asLong());
@@ -211,6 +214,7 @@ class AccountControllerTest {
     void listsAccountsAsBareArrayOrderedByNameWithExactlyTheFields() throws Exception {
         UUID walletId = UUID.fromString("10000000-0000-4000-8000-000000000011");
         database.insertAccount(walletId, USER_ID, "Wallet", 123456, "ACTIVE");
+        database.execute("UPDATE accounts SET opening_balance = ? WHERE id = ?", 100000, walletId.toString());
         database.insertAccount(OWN_ACCOUNT_ID, USER_ID, "Checking", 0, "ACTIVE");
 
         HttpResponse<String> response = send("GET", "/api/v1/accounts", null);
@@ -222,7 +226,9 @@ class AccountControllerTest {
         assertEquals("Checking", body.get(0).path("name").asString());
         assertEquals("Wallet", body.get(1).path("name").asString());
         JsonNode wallet = body.get(1);
-        assertEquals(4, wallet.size());
+        assertEquals(5, wallet.size());
+        assertEquals(100000L, wallet.path("openingBalanceCents").asLong());
+        assertTrue(wallet.path("openingBalanceCents").isIntegralNumber());
         assertEquals(walletId.toString(), wallet.path("id").asString());
         assertEquals(123456L, wallet.path("balanceCents").asLong());
         assertTrue(wallet.path("balanceCents").isIntegralNumber());

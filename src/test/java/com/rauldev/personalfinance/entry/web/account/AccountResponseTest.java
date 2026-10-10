@@ -18,16 +18,16 @@ class AccountResponseTest {
 
     @Test
     void mapsBalanceToCentsAndStatusToName() {
-        AccountDetails details = new AccountDetails(ID, USER_ID, "Wallet", Money.ofCents(123456), AccountStatus.INACTIVE);
+        AccountDetails details = new AccountDetails(ID, USER_ID, "Wallet", Money.ofCents(123456), AccountStatus.INACTIVE, Money.ofCents(1000));
 
         AccountResponse response = AccountResponse.from(details);
 
-        assertEquals(new AccountResponse(ID, "Wallet", 123456L, "INACTIVE"), response);
+        assertEquals(new AccountResponse(ID, "Wallet", 123456L, 1000L, "INACTIVE"), response);
     }
 
     @Test
     void mapsZeroBalanceToZeroCents() {
-        AccountDetails details = new AccountDetails(ID, USER_ID, "Wallet", Money.ofCents(0), AccountStatus.ACTIVE);
+        AccountDetails details = new AccountDetails(ID, USER_ID, "Wallet", Money.ofCents(0), AccountStatus.ACTIVE, Money.ofCents(0));
 
         assertEquals(0L, AccountResponse.from(details).balanceCents());
     }

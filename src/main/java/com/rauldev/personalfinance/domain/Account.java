@@ -7,6 +7,7 @@ public final class Account {
     private final UUID id;
     private final UUID userId;
     private String name;
+    private final Money openingBalance;
     private Money balance;
     private AccountStatus status;
 
@@ -14,11 +15,25 @@ public final class Account {
         this(UUID.randomUUID(), userId, name);
     }
 
+    public Account(UUID userId, String name, Money openingBalance) {
+        this(UUID.randomUUID(), userId, name, openingBalance);
+    }
+
     public Account(UUID id, UUID userId, String name) {
+        this(id, userId, name, Money.ofCents(0));
+    }
+
+    /**
+     * Creates an active account whose balance starts at {@code openingBalance}. The opening balance
+     * is not a financial operation: it is kept on the account, immutable, so that
+     * {@code balance = openingBalance + operations} can always be reconciled.
+     */
+    public Account(UUID id, UUID userId, String name, Money openingBalance) {
         this.id = Objects.requireNonNull(id, "Account id cannot be null");
         this.userId = Objects.requireNonNull(userId, "User id cannot be null");
         this.name = validateName(name);
-        this.balance = Money.ofCents(0);
+        this.openingBalance = Objects.requireNonNull(openingBalance, "Opening balance cannot be null");
+        this.balance = openingBalance;
         this.status = AccountStatus.ACTIVE;
     }
 
@@ -32,6 +47,10 @@ public final class Account {
 
     public String name() {
         return name;
+    }
+
+    public Money openingBalance() {
+        return openingBalance;
     }
 
     public Money balance() {

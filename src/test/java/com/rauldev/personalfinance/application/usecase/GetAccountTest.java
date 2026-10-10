@@ -25,7 +25,8 @@ class GetAccountTest {
             userId,
             "Checking",
             Money.ofCents(1250),
-            AccountStatus.ACTIVE
+            AccountStatus.ACTIVE,
+            Money.ofCents(0)
         );
 
         RecordingAccountQueryPort accountQueryPort = new RecordingAccountQueryPort(Optional.of(expected));
@@ -64,7 +65,8 @@ class GetAccountTest {
             userId,
             "Savings",
             Money.ofCents(3000),
-            AccountStatus.INACTIVE
+            AccountStatus.INACTIVE,
+            Money.ofCents(0)
         );
 
         RecordingAccountQueryPort accountQueryPort = new RecordingAccountQueryPort(Optional.of(expected));

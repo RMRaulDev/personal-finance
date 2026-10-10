@@ -11,11 +11,15 @@ import com.rauldev.personalfinance.entry.web.common.MoneyCents;
  * The owner's user id is not exposed, and the status is the enum constant name ({@code ACTIVE},
  * {@code INACTIVE}).
  */
-public record AccountResponse(UUID id, String name, long balanceCents, String status) {
+public record AccountResponse(UUID id, String name, long balanceCents, long openingBalanceCents, String status) {
 
     public static AccountResponse from(AccountDetails account) {
         Objects.requireNonNull(account, "Account details cannot be null");
         return new AccountResponse(
-            account.id(), account.name(), MoneyCents.toCents(account.balance()), account.status().name());
+            account.id(),
+            account.name(),
+            MoneyCents.toCents(account.balance()),
+            MoneyCents.toCents(account.openingBalance()),
+            account.status().name());
     }
 }

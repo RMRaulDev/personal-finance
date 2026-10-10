@@ -19,8 +19,8 @@ class ListAccountsTest {
     void execute_shouldReturnTheListFromThePortUnchangedAndPassTheUserId() {
         UUID userId = UUID.randomUUID();
         List<AccountDetails> expected = List.of(
-            new AccountDetails(UUID.randomUUID(), userId, "Alpha", Money.ofCents(100), AccountStatus.ACTIVE),
-            new AccountDetails(UUID.randomUUID(), userId, "Beta", Money.ofCents(0), AccountStatus.INACTIVE));
+            new AccountDetails(UUID.randomUUID(), userId, "Alpha", Money.ofCents(100), AccountStatus.ACTIVE, Money.ofCents(0)),
+            new AccountDetails(UUID.randomUUID(), userId, "Beta", Money.ofCents(0), AccountStatus.INACTIVE, Money.ofCents(0)));
         RecordingAccountQueryPort port = new RecordingAccountQueryPort(expected);
 
         List<AccountDetails> result = new ListAccounts(port).execute(new ListAccountsQuery(userId));

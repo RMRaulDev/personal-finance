@@ -22,6 +22,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import com.rauldev.personalfinance.application.port.out.TransactionManager;
 import com.rauldev.personalfinance.application.usecase.ArchiveObligation;
 import com.rauldev.personalfinance.application.usecase.CancelOperation;
+import com.rauldev.personalfinance.application.usecase.CompleteInitialSetup;
 import com.rauldev.personalfinance.application.usecase.CreateAccount;
 import com.rauldev.personalfinance.application.usecase.CreateCategory;
 import com.rauldev.personalfinance.application.usecase.CreateObligation;
@@ -109,7 +110,7 @@ class PersonalFinanceApplicationTest {
         Set<Class<?>> allowed = Set.of(
             SQLiteConnectionProvider.class, TransactionConnectionHolder.class, JdbcTransactionManager.class,
             JdbcUserQueryAdapter.class, JdbcAccountRepository.class, JdbcCategoryRepository.class,
-            JdbcAccountQueryAdapter.class, CreateAccount.class, ModifyAccount.class, GetAccount.class,
+            JdbcAccountQueryAdapter.class, CompleteInitialSetup.class, CreateAccount.class, ModifyAccount.class, GetAccount.class,
             CreateCategory.class, JdbcCategoryQueryAdapter.class, ListAccounts.class, ListCategories.class,
             JdbcIncomeOperationRepository.class, JdbcExpenseOperationRepository.class,
             JdbcTransferOperationRepository.class, JdbcReversalRepository.class,

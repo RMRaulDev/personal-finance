@@ -212,8 +212,8 @@ class JdbcAccountQueryAdapterTest {
         List<AccountDetails> accounts = accountQueryAdapter.findByUserId(USER_A_ID);
 
         assertEquals(List.of(
-            new AccountDetails(activeId, USER_A_ID, "Active", Money.ofCents(12345), AccountStatus.ACTIVE),
-            new AccountDetails(inactiveId, USER_A_ID, "Inactive", Money.ofCents(0), AccountStatus.INACTIVE)),
+            new AccountDetails(activeId, USER_A_ID, "Active", Money.ofCents(12345), AccountStatus.ACTIVE, Money.ofCents(0)),
+            new AccountDetails(inactiveId, USER_A_ID, "Inactive", Money.ofCents(0), AccountStatus.INACTIVE, Money.ofCents(0))),
             accounts);
     }
 

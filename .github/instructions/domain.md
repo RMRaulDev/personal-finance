@@ -70,6 +70,7 @@ Account
 ├── id: UUID
 ├── userId: UUID
 ├── name: String
+├── openingBalance: Money
 ├── balance: Money
 └── status: AccountStatus
 ```
@@ -78,6 +79,7 @@ Account
 
 * `id` and `userId` are required (`UUID`).
 * `name` is required and cannot be blank.
+* `openingBalance` is required, cannot be negative (zero is valid), and is **immutable** after creation.
 * `balance` cannot be negative.
 * `status` is a valid `AccountStatus` (`ACTIVE`, `INACTIVE`).
 * Account names are unique per user (`userId + name`).
@@ -87,11 +89,11 @@ Account
 A newly created account starts with:
 
 ```text
-balance = Money.ofCents(0)
+balance = openingBalance
 status = AccountStatus.ACTIVE
 ```
 
-Account creation does not accept an initial balance.
+Account creation accepts an opening balance (`Account(userId, name, openingBalance)`); the constructors without one use `Money.ofCents(0)`. The opening balance is **not a financial operation**: no operation row is created, so it never appears in the operations history, in the dashboard `recent`, or in the future Review. It is kept on the account so that `balance = openingBalance + the effect of the operations` can be reconciled.
 
 ### Account Behavior
 
@@ -419,6 +421,7 @@ A request that is well-formed but violates a business rule given the current sta
 | `OCCURRENCE_PAID_NOT_REOPENABLE` | `OccurrenceResolution.ensureReopenable` (via `ReopenOccurrence`) |
 | `OCCURRENCE_NOT_SCHEDULED` | `OccurrenceResolution.validateNewResolution` (via `paid` / `skipped` and `PayOccurrence`) |
 | `OBLIGATION_SCHEDULE_CONFLICTS_WITH_RESOLUTION` | `Obligation.changeRecurrence` |
+| `INITIAL_SETUP_ALREADY_COMPLETED` | `CompleteInitialSetup` (the user already has an account or a category, in any status) |
 
 The HTTP mapping is described in `application.md` → Error Handling.
 
