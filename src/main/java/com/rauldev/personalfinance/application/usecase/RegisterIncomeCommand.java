@@ -6,6 +6,9 @@ import java.util.UUID;
 
 import com.rauldev.personalfinance.domain.Money;
 
+/**
+ * Registers an income. {@code categoryId} is optional: {@code null} registers the income without a category.
+ */
 public record RegisterIncomeCommand(
     UUID userId,
     UUID accountId,
@@ -16,7 +19,6 @@ public record RegisterIncomeCommand(
     public RegisterIncomeCommand {
         Objects.requireNonNull(userId, "User id cannot be null");
         Objects.requireNonNull(accountId, "Account id cannot be null");
-        Objects.requireNonNull(categoryId, "Category id cannot be null");
         Objects.requireNonNull(amount, "Amount cannot be null");
         Objects.requireNonNull(operationDate, "Operation date cannot be null");
     }

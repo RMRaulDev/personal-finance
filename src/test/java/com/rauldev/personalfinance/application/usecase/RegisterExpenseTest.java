@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -68,7 +69,7 @@ class RegisterExpenseTest {
         assertEquals(1, accountRepository.updateCalls);
         assertNotNull(expenseRepository.createdExpense);
         assertEquals(accountId, expenseRepository.createdExpense.accountId());
-        assertEquals(categoryId, expenseRepository.createdExpense.categoryId());
+        assertEquals(Optional.of(categoryId), expenseRepository.createdExpense.categoryId());
         assertEquals(amount, expenseRepository.createdExpense.amount());
         assertEquals(Money.ofCents(5000), accountRepository.updatedAccount.balance());
         assertEquals(result, expenseRepository.createdExpense.id());
@@ -380,13 +381,12 @@ class RegisterExpenseTest {
     }
 
     @Test
-    void command_shouldRejectNullReferences() {
+    void command_shouldRejectNullReferencesExceptCategory() {
         assertThrows(NullPointerException.class,
             () -> new RegisterExpenseCommand(null, UUID.randomUUID(), UUID.randomUUID(), Money.ofCents(100), OPERATION_DATE));
         assertThrows(NullPointerException.class,
             () -> new RegisterExpenseCommand(UUID.randomUUID(), null, UUID.randomUUID(), Money.ofCents(100), OPERATION_DATE));
-        assertThrows(NullPointerException.class,
-            () -> new RegisterExpenseCommand(UUID.randomUUID(), UUID.randomUUID(), null, Money.ofCents(100), OPERATION_DATE));
+        assertNull(new RegisterExpenseCommand(UUID.randomUUID(), UUID.randomUUID(), null, Money.ofCents(100), OPERATION_DATE).categoryId());
         assertThrows(NullPointerException.class,
             () -> new RegisterExpenseCommand(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null, OPERATION_DATE));
         assertThrows(NullPointerException.class,

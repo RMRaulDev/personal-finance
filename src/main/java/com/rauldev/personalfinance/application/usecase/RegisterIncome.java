@@ -39,9 +39,7 @@ public final class RegisterIncome {
                 .orElseThrow(() -> new ResourceNotFoundException(
                     "Account not found for user: " + command.accountId()));
 
-            Category category = categoryRepository.findByIdAndUserId(command.categoryId(), command.userId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Category not found for user: " + command.categoryId()));
+            Category category = command.categoryId() == null ? null : findCategory(command);
 
             Income income = Income.register(
                 account,
@@ -56,5 +54,11 @@ public final class RegisterIncome {
 
             return income.id();
         });
+    }
+
+    private Category findCategory(RegisterIncomeCommand command) {
+        return categoryRepository.findByIdAndUserId(command.categoryId(), command.userId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Category not found for user: " + command.categoryId()));
     }
 }

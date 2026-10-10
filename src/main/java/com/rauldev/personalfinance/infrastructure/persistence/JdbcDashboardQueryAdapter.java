@@ -29,6 +29,14 @@ import com.rauldev.personalfinance.domain.Recurrence;
 import com.rauldev.personalfinance.domain.ResolutionSnapshot;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
 
+/**
+ * Reads the dashboard data of a user.
+ *
+ * <p>The category of an income or expense is optional, so it is joined with {@code LEFT JOIN}: an operation without
+ * one has a {@code NULL} category and is never dropped. The category id is read from the operation row, so a
+ * reference to a missing category leaves the name {@code NULL} and the row fails as corrupted data instead of
+ * looking uncategorized.
+ */
 public final class JdbcDashboardQueryAdapter implements DashboardQueryPort {
     private static final String ACTIVE_OBLIGATIONS_SQL =
         "SELECT id, name, amount, account_id, category_id, frequency, start_date, end_date, status "
@@ -54,22 +62,22 @@ public final class JdbcDashboardQueryAdapter implements DashboardQueryPort {
             + "FROM ("
             + "SELECT io.id AS op_id, 'INCOME' AS op_type, io.amount AS amount, io.operation_date AS operation_date, "
             + "io.created_at AS created_at, "
-            + "a.id AS account_id, a.name AS account_name, c.id AS category_id, c.name AS category_name, "
+            + "a.id AS account_id, a.name AS account_name, io.category_id AS category_id, c.name AS category_name, "
             + "NULL AS source_account_id, NULL AS source_account_name, NULL AS target_account_id, NULL AS target_account_name, "
             + "NULL AS obligation_id, NULL AS obligation_name "
             + "FROM income_operations io "
             + "JOIN accounts a ON a.id = io.account_id "
-            + "JOIN categories c ON c.id = io.category_id "
+            + "LEFT JOIN categories c ON c.id = io.category_id "
             + "WHERE a.user_id = ? AND io.status = 'ACTIVE' "
             + "UNION ALL "
             + "SELECT eo.id AS op_id, 'EXPENSE' AS op_type, eo.amount AS amount, eo.operation_date AS operation_date, "
             + "eo.created_at AS created_at, "
-            + "a.id AS account_id, a.name AS account_name, c.id AS category_id, c.name AS category_name, "
+            + "a.id AS account_id, a.name AS account_name, eo.category_id AS category_id, c.name AS category_name, "
             + "NULL AS source_account_id, NULL AS source_account_name, NULL AS target_account_id, NULL AS target_account_name, "
             + "ob.id AS obligation_id, ob.name AS obligation_name "
             + "FROM expense_operations eo "
             + "JOIN accounts a ON a.id = eo.account_id "
-            + "JOIN categories c ON c.id = eo.category_id "
+            + "LEFT JOIN categories c ON c.id = eo.category_id "
             + "LEFT JOIN occurrence_resolutions orr ON orr.expense_id = eo.id "
             + "LEFT JOIN obligations ob ON ob.id = orr.obligation_id AND ob.user_id = a.user_id "
             + "WHERE a.user_id = ? AND eo.status = 'ACTIVE' "

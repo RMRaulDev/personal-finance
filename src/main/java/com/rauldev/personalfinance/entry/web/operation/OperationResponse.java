@@ -20,7 +20,8 @@ import com.rauldev.personalfinance.entry.web.common.TransferResponse;
  *
  * <p>The shape depends on {@code type} ({@code INCOME}, {@code EXPENSE}, {@code TRANSFER}):
  * <ul>
- *   <li>Incomes and expenses carry {@code account} and {@code category}, a {@code status}
+ *   <li>Incomes and expenses carry {@code account} and {@code category} ({@code null} when the
+ *   operation has no category), a {@code status}
  *   ({@code ACTIVE} or {@code CANCELLED}), and {@code cancelledAt} (an ISO-8601 UTC instant, only
  *   when cancelled); {@code transfer} is {@code null}.</li>
  *   <li>Transfers carry {@code transfer} (source and target accounts); {@code account},

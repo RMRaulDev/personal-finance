@@ -30,10 +30,11 @@ CREATE TABLE categories (
     UNIQUE (user_id, name)
 );
 
+-- category_id is optional: NULL means the operation has no category.
 CREATE TABLE income_operations (
     id             TEXT    PRIMARY KEY NOT NULL,
     account_id     TEXT    NOT NULL,
-    category_id    TEXT    NOT NULL,
+    category_id    TEXT,
     amount         INTEGER NOT NULL    CHECK (amount > 0),
     operation_date TEXT    NOT NULL,
     status         TEXT    NOT NULL,
@@ -43,10 +44,11 @@ CREATE TABLE income_operations (
     FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
 );
 
+-- category_id is optional: NULL means the operation has no category.
 CREATE TABLE expense_operations (
     id             TEXT    PRIMARY KEY NOT NULL,
     account_id     TEXT    NOT NULL,
-    category_id    TEXT    NOT NULL,
+    category_id    TEXT,
     amount         INTEGER NOT NULL    CHECK (amount > 0),
     operation_date TEXT    NOT NULL,
     status         TEXT    NOT NULL,

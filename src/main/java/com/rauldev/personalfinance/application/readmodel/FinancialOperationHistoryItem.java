@@ -9,6 +9,9 @@ import com.rauldev.personalfinance.application.query.OperationType;
 import com.rauldev.personalfinance.domain.Money;
 import com.rauldev.personalfinance.domain.OperationStatus;
 
+/**
+ * @param category the category of an income or expense, or {@code null} for a transfer or an operation without one
+ */
 public record FinancialOperationHistoryItem(
     UUID operationId,
     OperationType operationType,
@@ -30,9 +33,6 @@ public record FinancialOperationHistoryItem(
             case INCOME, EXPENSE -> {
                 if (account == null) {
                     throw new IllegalArgumentException("Income and expense operations require an account");
-                }
-                if (category == null) {
-                    throw new IllegalArgumentException("Income and expense operations require a category");
                 }
                 if (transfer != null) {
                     throw new IllegalArgumentException("Income and expense operations cannot include transfer details");

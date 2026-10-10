@@ -173,7 +173,8 @@ public final class JdbcReversalRepository implements ReversalRepository {
             UUID opId = UUID.fromString(resultSet.getString("op_id"));
             UUID userId = UUID.fromString(resultSet.getString("user_id"));
             UUID accountId = UUID.fromString(resultSet.getString("account_id"));
-            UUID categoryId = UUID.fromString(resultSet.getString("category_id"));
+            String categoryIdValue = resultSet.getString("category_id");
+            UUID categoryId = categoryIdValue == null ? null : UUID.fromString(categoryIdValue);
             Money amount = Money.ofCents(resultSet.getLong("amount"));
             LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
             OperationStatus status = OperationStatus.valueOf(resultSet.getString("status"));

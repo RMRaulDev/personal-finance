@@ -133,3 +133,20 @@ Cada cambio de comportamiento sigue el flujo completo de agentes de `CLAUDE.md` 
 - JDBC: ida y vuelta de `opening_balance`, `mapRow` (reconstrucción del saldo respecto al saldo inicial) y el `CHECK (opening_balance >= 0)`.
 - `SetupControllerTest` (201 con `Location`, 400 por campos faltantes o negativo, 409).
 - `AccountControllerTest`: crear con saldo inicial y forma de `AccountResponse`.
+
+## 11. Tests pendientes de la categoría opcional en ingresos y gastos
+
+**Situación:** la rama `feature/optional-operation-category` hizo opcional la categoría de ingresos y gastos (`categoryId` nulo; `Income.categoryId()` y `Expense.categoryId()` devuelven `Optional<UUID>`; migración `003-optional-operation-category.sql`). Las obligaciones y `PayOccurrence` siguen exigiendo categoría. El desarrollador aplazó los tests de este cambio.
+
+**Qué hacer:** escribir, con el agente `test-writer`:
+- Dominio: registrar ingreso y gasto con y sin categoría, y el orden de las validaciones (sin categoría solo corren las de la cuenta y, en gastos, después el saldo).
+- Casos de uso: `RegisterIncome`, `RegisterExpense` y `ExpenseRegistration` no consultan `CategoryRepository` cuando no hay `categoryId`.
+- JDBC: ida y vuelta de `category_id` nulo en `JdbcIncomeOperationRepository`, `JdbcExpenseOperationRepository` y `JdbcReversalRepository`.
+- Consultas: historial, detalle y `recent` del dashboard devuelven operaciones sin categoría (`category` nulo), y el filtro `categoryId` del historial las excluye.
+- HTTP: 201 sin `categoryId` en `POST /operations/incomes` y `/expenses`, y `"category": null` en `GET /operations/{id}`.
+
+## 12. Acotar al usuario los JOIN de categoría de las consultas de operaciones
+
+**Situación:** los `LEFT JOIN categories` de `JdbcFinancialOperationQueryAdapter` y `JdbcDashboardQueryAdapter` solo comparan por id de categoría; a diferencia de `JdbcObligationQueryAdapter`, no están acotados al usuario. Hoy no es alcanzable por el Core, que carga la categoría por usuario al registrar.
+
+**Qué hacer (opcional, defensa en profundidad):** agregar `AND c.user_id = a.user_id` a esos JOIN, de modo que una referencia cruzada deje el nombre en `NULL` y la fila falle como `CorruptedPersistedDataException`. Corregir además el fixture inválido de `JdbcFinancialOperationQueryAdapterTest.search_appliesUserIsolation`, que guarda el ingreso del usuario B con la categoría del usuario A.
