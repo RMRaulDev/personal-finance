@@ -1,6 +1,9 @@
+export { ActivityBar, type ActivityBarProps } from './ActivityBar';
+export { AmountField, type AmountFieldProps } from './AmountField';
 export { Badge, type BadgeProps } from './Badge';
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button';
 export { Card, type CardProps } from './Card';
+export { ChoiceGroup, type ChoiceGroupProps, type ChoiceOption } from './ChoiceGroup';
 export { DesignSystemProvider } from './DesignSystemProvider';
 export { Field, type FieldProps } from './Field';
 export { focusRing } from './focus';

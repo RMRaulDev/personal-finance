@@ -14,7 +14,7 @@ export interface CommitmentListProps {
   days: number;
   /** False only when the user has no obligations at all: shows the invite instead. */
   hasObligations: boolean;
-  /** True while a payment or an undo is in flight; every "Pagar" is inactive meanwhile. */
+  /** True while a payment, undo, or registration runs; every "Pagar" is inactive meanwhile. */
   payPending: boolean;
   onPay: (row: CommitmentRow) => void;
 }

@@ -12,7 +12,8 @@ export type BusinessRuleCode =
   | 'OCCURRENCE_ALREADY_RESOLVED'
   | 'OCCURRENCE_NOT_SCHEDULED'
   | 'OBLIGATION_SCHEDULE_CONFLICTS_WITH_RESOLUTION'
-  | 'OCCURRENCE_PAID_NOT_REOPENABLE';
+  | 'OCCURRENCE_PAID_NOT_REOPENABLE'
+  | 'INITIAL_SETUP_ALREADY_COMPLETED';
 
 /** Why a request failed before reaching the server or getting a usable answer. */
 export type ApiFailureKind = 'http' | 'network' | 'not-configured';

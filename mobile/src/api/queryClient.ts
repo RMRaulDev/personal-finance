@@ -15,6 +15,7 @@ export const queryKeys = {
   obligations: ['obligations'],
   operations: ['operations'],
   accounts: ['accounts'],
+  categories: ['categories'],
 } as const;
 
 /**

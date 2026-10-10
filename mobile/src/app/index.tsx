@@ -1,6 +1,9 @@
-import { DashboardScreen } from '../features/dashboard';
+import { Redirect } from 'expo-router';
 
-/** Home route: the dashboard. */
-export default function HomeRoute() {
-  return <DashboardScreen />;
+import { EntryGate } from '../features/onboarding';
+
+/** Entry route: opens the onboarding when the user has no account yet, the dashboard otherwise. */
+export default function EntryRoute() {
+  // `Redirect` replaces this route, so Back never returns to the gate.
+  return <EntryGate onboarding={<Redirect href="/onboarding" />} home={<Redirect href="/dashboard" />} />;
 }

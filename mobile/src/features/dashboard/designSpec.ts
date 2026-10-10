@@ -11,3 +11,9 @@ export const shortfallNoteMaxWidth = 170;
 
 /** How many recent operations the design shows (the API returns up to 5). */
 export const recentLimit = 3;
+
+/** Grab handle at the top of the registration sheet: 36×4, in `border-default`. */
+export const sheetHandle = { width: 36, height: 4 } as const;
+
+/** The registration sheet never grows past 94% of the screen height; its content scrolls. */
+export const sheetMaxHeight = '94%';

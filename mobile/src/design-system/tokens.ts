@@ -118,6 +118,19 @@ export interface SemanticColors {
   text: { primary: string; secondary: string; disabled: string };
   border: { subtle: string; default: string; control: string; focus: string };
   role: Record<Role, RoleColors>;
+  /**
+   * Backdrop behind dialogs and sheets, with its alpha built in: it always darkens the screen
+   * (neutral-900 at 32% in light, neutral-950 at 60% in dark). Proposal pending adoption in the
+   * Lucas DS source project.
+   */
+  scrim: string;
+}
+
+/** Appends an alpha (0–1) to a `#rrggbb` color as a two-digit hex suffix. */
+function withAlpha(hex: string, alpha: number): string {
+  return `${hex}${Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
 }
 
 // Role step rule: fill 600/400, hover 700/300, bg 50/950, border 200/800, text 700/300.
@@ -151,6 +164,7 @@ export const colors: Record<ColorScheme, SemanticColors> = {
     text: { primary: neutral[900], secondary: neutral[600], disabled: neutral[300] },
     border: { subtle: neutral[200], default: neutral[300], control: neutral[500], focus: teal[600] },
     role: roleColors('light'),
+    scrim: withAlpha(neutral[900], 0.32),
   },
   dark: {
     surface: {
@@ -163,6 +177,7 @@ export const colors: Record<ColorScheme, SemanticColors> = {
     text: { primary: neutral[50], secondary: neutral[400], disabled: neutral[700] },
     border: { subtle: neutral[800], default: neutral[700], control: neutral[500], focus: teal[400] },
     role: roleColors('dark'),
+    scrim: withAlpha(neutral[950], 0.6),
   },
 };
 
@@ -199,8 +214,12 @@ export const space = {
 /** Radii: `sm` badges, `md` controls, `lg` cards, `xl` overlays, `full` pills. They do not scale with size. */
 export const radius = { none: 0, sm: 4, md: 6, lg: 8, xl: 12, full: 9999 } as const;
 
-/** Control heights: `sm` tables and toolbars, `md` default, `lg` mobile forms and CTAs. */
-export const control = { sm: 32, md: 40, lg: 48 } as const;
+/**
+ * Control heights: `sm` tables and toolbars, `md` default, `lg` mobile forms and CTAs, `xl` the
+ * amount field, and `touch` the minimum touch target of compact controls such as choice chips.
+ * `xl` and `touch` are proposals pending adoption in the Lucas DS source project.
+ */
+export const control = { sm: 32, md: 40, lg: 48, xl: 64, touch: 44 } as const;
 
 /** The only widths allowed as literals: 1px borders and the 2px focus ring. */
 export const borderWidth = { hairline: 1, focus: 2 } as const;
@@ -246,6 +265,8 @@ export const textStyles = {
   body: { size: 16, leading: 1.5, weight: 400 },
   'body-sm': { size: 14, leading: 1.43, weight: 400 },
   caption: { size: 12, leading: 1.33, weight: 500 },
+  // Fixed, never fluid: the amount typed in `AmountField`. Proposal pending adoption in Lucas DS.
+  amount: { size: 36, leading: 1.15, weight: 600, tracking: -0.02 },
 } as const satisfies Record<string, FixedTextStyle | FluidTextStyle>;
 
 /** Name of a type style (`.text-*` in the web version). */

@@ -11,10 +11,16 @@ export interface ToastProps {
   toast: ToastMessage;
   /** Called after the action runs, so the toast closes right away. */
   onDismiss: () => void;
+  /**
+   * Distance from the bottom of the area the toast floats in. Defaults to `space[8]` plus the
+   * bottom safe area, for a screen without a footer. Above a footer (which already clears the safe
+   * area), pass the gap the design leaves between the footer and the toast.
+   */
+  bottom?: number;
 }
 
 /** Floating message at the bottom of the screen, with an optional action such as "Deshacer". */
-export function Toast({ toast, onDismiss }: ToastProps) {
+export function Toast({ toast, onDismiss, bottom }: ToastProps) {
   const theme = useTheme();
   const { colors } = theme;
   const insets = useSafeAreaInsets();
@@ -35,7 +41,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         position: 'absolute',
         left: space[4],
         right: space[4],
-        bottom: space[8] + insets.bottom,
+        bottom: bottom ?? space[8] + insets.bottom,
         flexDirection: 'row',
         alignItems: 'center',
         gap: space[3],

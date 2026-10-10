@@ -8,10 +8,11 @@ const CONFLICT_MESSAGES: Partial<Record<BusinessRuleCode, string>> = {
   OCCURRENCE_ALREADY_RESOLVED: 'Ese compromiso ya estaba resuelto.',
   OCCURRENCE_NOT_SCHEDULED: 'Esa fecha ya no está en el calendario del compromiso.',
   OBLIGATION_ARCHIVED: 'Ese compromiso está archivado.',
-  ACCOUNT_INACTIVE: 'La cuenta de ese compromiso está inactiva.',
-  CATEGORY_INACTIVE: 'La categoría de ese compromiso está inactiva.',
+  // Neutral texts: payments and registrations share them.
+  ACCOUNT_INACTIVE: 'La cuenta está inactiva.',
+  CATEGORY_INACTIVE: 'La categoría está inactiva.',
   INSUFFICIENT_BALANCE: 'No hay saldo suficiente en la cuenta.',
-  OPERATION_ALREADY_CANCELLED: 'Ese pago ya estaba deshecho.',
+  OPERATION_ALREADY_CANCELLED: 'Esa operación ya estaba cancelada.',
 };
 
 const GENERIC_MESSAGE = 'Algo salió mal. Intenta de nuevo.';
