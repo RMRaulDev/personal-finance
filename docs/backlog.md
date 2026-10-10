@@ -150,3 +150,19 @@ Cada cambio de comportamiento sigue el flujo completo de agentes de `CLAUDE.md` 
 **Situación:** los `LEFT JOIN categories` de `JdbcFinancialOperationQueryAdapter` y `JdbcDashboardQueryAdapter` solo comparan por id de categoría; a diferencia de `JdbcObligationQueryAdapter`, no están acotados al usuario. Hoy no es alcanzable por el Core, que carga la categoría por usuario al registrar.
 
 **Qué hacer (opcional, defensa en profundidad):** agregar `AND c.user_id = a.user_id` a esos JOIN, de modo que una referencia cruzada deje el nombre en `NULL` y la fila falle como `CorruptedPersistedDataException`. Corregir además el fixture inválido de `JdbcFinancialOperationQueryAdapterTest.search_appliesUserIsolation`, que guarda el ingreso del usuario B con la categoría del usuario A.
+
+## 13. Tests pendientes de las ocurrencias de obligaciones
+
+**Situación:** la rama `feature/obligation-occurrences` agregó `GET /api/v1/obligations/{id}/occurrences` (`GetObligationOccurrences`), los campos `nextDueDate`, `overdueCount` y `archivedOn` de `ObligationResponse`, la fecha de archivo (`obligations.archived_on`, migración `004-obligation-archived-on.sql`) y la unicidad del nombre sin distinguir mayúsculas. El desarrollador aplazó los tests de este cambio.
+
+**Qué hacer:** escribir, con el agente `test-writer`:
+- Dominio: `ObligationTimeline` (vencidas, próximas, siguiente fecha, obligación archivada, resoluciones fuera del calendario), `Recurrence.firstDatesOnOrAfterExcluding` (límite, fechas excluidas, calendario con fin, `ONCE`, `limit < 1`), `Obligation.isSameName` (mayúsculas, acentos, normalización Unicode) y `archivedOn` (`archive` lo fija, solo con `ARCHIVED`, constructor de 8 y de 9 argumentos).
+- Casos de uso: `GetObligationOccurrences` (`overdue`, `upcoming` de 3, `resolved` de 4 con pagos adelantados, archivada, 404 de otro usuario), `ListObligations` y `GetObligation` con `ObligationOverview`, y el 409 por nombre con otra capitalización en `CreateObligation` y `ModifyObligation` (sin comprobación cuando el nombre no cambia).
+- JDBC: ida y vuelta de `archived_on`, `findResolutionsByUserId`, `findResolvedOccurrences` (acotado al usuario, gasto unido con `LEFT JOIN`, filas corruptas: `PAID` sin gasto o con gasto de otro usuario, `SKIPPED` con gasto) y `existsByUserIdAndName...` sin distinguir mayúsculas.
+- HTTP: `GET /obligations/{id}/occurrences` (forma de la respuesta, 404), los campos nuevos de `ObligationResponse` y el 409 `OBLIGATION_NAME_ALREADY_EXISTS` con otra capitalización.
+
+## 14. Unicidad del nombre de obligación sin distinguir mayúsculas: carrera y duplicados previos
+
+**Situación:** el nombre de la obligación es único por usuario sin distinguir mayúsculas, archivadas incluidas, y se compara en Java (`Obligation.isSameName`, normalización NFC más `toLowerCase(Locale.ROOT)`). El `UNIQUE (user_id, name)` de la base sigue siendo exacto: dos altas concurrentes que difieren solo en mayúsculas pasan ambas la comprobación y se guardan las dos. Además, una base existente puede tener duplicados que solo difieren en mayúsculas, creados antes de la regla; la cabecera de la migración `004` trae una consulta para detectarlos.
+
+**Qué hacer (opcional):** si la carrera importa, una columna normalizada con su propio `UNIQUE` (migración que reconstruya la tabla, o una columna generada) o `BEGIN IMMEDIATE` en las altas (ver el punto 8, concurrencia SQLite). Mientras tanto, los duplicados previos se resuelven a mano.

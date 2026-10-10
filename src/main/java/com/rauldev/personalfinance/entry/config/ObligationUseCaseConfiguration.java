@@ -16,6 +16,7 @@ import com.rauldev.personalfinance.application.usecase.ArchiveObligation;
 import com.rauldev.personalfinance.application.usecase.CreateObligation;
 import com.rauldev.personalfinance.application.usecase.ExpenseRegistration;
 import com.rauldev.personalfinance.application.usecase.GetObligation;
+import com.rauldev.personalfinance.application.usecase.GetObligationOccurrences;
 import com.rauldev.personalfinance.application.usecase.ListObligations;
 import com.rauldev.personalfinance.application.usecase.ModifyObligation;
 import com.rauldev.personalfinance.application.usecase.PayOccurrence;
@@ -24,11 +25,13 @@ import com.rauldev.personalfinance.application.usecase.SkipOccurrence;
 import com.rauldev.personalfinance.application.usecase.SkipOverdueOccurrences;
 
 /**
- * Wires the obligation use cases: lifecycle (create, modify, archive), queries (list, get), and
- * occurrences (pay, skip, skip overdue, reopen).
+ * Wires the obligation use cases: lifecycle (create, modify, archive), queries (list, get, list
+ * occurrences), and occurrences (pay, skip, skip overdue, reopen).
  *
  * <p>Ports come from {@link PersistenceConfiguration}; the {@link Clock} that decides "today"
- * comes from {@link ClockConfiguration} (tests replace it with a {@code @Primary} fixed clock).
+ * comes from {@link ClockConfiguration} (tests replace it with a {@code @Primary} fixed clock). The
+ * queries receive the {@link TransactionManager}, like {@code GetDashboard}, because they run their
+ * reads in one transaction.
  *
  * <p>The {@link ExpenseRegistration} bean exists only for {@link PayOccurrence}, which receives it
  * by constructor and runs it inside its own transaction. {@code RegisterExpense} does not use this
@@ -87,13 +90,30 @@ public class ObligationUseCaseConfiguration {
     }
 
     @Bean
-    public ListObligations listObligations(ObligationQueryPort obligationQueryPort) {
-        return new ListObligations(obligationQueryPort);
+    public ListObligations listObligations(
+        ObligationQueryPort obligationQueryPort,
+        TransactionManager transactionManager,
+        Clock clock
+    ) {
+        return new ListObligations(obligationQueryPort, transactionManager, clock);
     }
 
     @Bean
-    public GetObligation getObligation(ObligationQueryPort obligationQueryPort) {
-        return new GetObligation(obligationQueryPort);
+    public GetObligation getObligation(
+        ObligationQueryPort obligationQueryPort,
+        TransactionManager transactionManager,
+        Clock clock
+    ) {
+        return new GetObligation(obligationQueryPort, transactionManager, clock);
+    }
+
+    @Bean
+    public GetObligationOccurrences getObligationOccurrences(
+        ObligationQueryPort obligationQueryPort,
+        TransactionManager transactionManager,
+        Clock clock
+    ) {
+        return new GetObligationOccurrences(obligationQueryPort, transactionManager, clock);
     }
 
     @Bean

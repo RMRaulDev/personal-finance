@@ -296,7 +296,8 @@ Obligation
 ├── accountId: UUID
 ├── categoryId: UUID
 ├── recurrence: Recurrence
-└── status: ObligationStatus
+├── status: ObligationStatus
+└── archivedOn: LocalDate | null   (archivedOn() returns Optional<LocalDate>)
 ```
 
 Occurrences are computed from the `Recurrence`, never stored. Only `OccurrenceResolution`s are persisted. The aggregate does not own its resolutions: methods that depend on them receive `today` and **all** resolutions of the obligation. No domain class calls `now()`.
@@ -306,12 +307,20 @@ Occurrences are computed from the `Recurrence`, never stored. Only `OccurrenceRe
 * `id`, `userId`, `accountId`, `categoryId`, `recurrence`, and `status` are required.
 * `name` is required and cannot be blank. `amount` must be strictly positive.
 * `status` is `ObligationStatus.ACTIVE` or `ObligationStatus.ARCHIVED`. Archiving is always explicit; an obligation with nothing left to resolve is not archived automatically.
-* Obligation names are unique per user (`OBLIGATION_NAME_ALREADY_EXISTS`); defined in the domain, thrown by `CreateObligation` and `ModifyObligation`, and by `JdbcObligationRepository` for concurrent duplicates.
-* `Obligation.create(account, category, name, amount, recurrence, today)` starts `ACTIVE`. It validates the payment source with `OperationReferences.validate` (same order and messages as `Expense.register`, without the balance check; category type must be `EXPENSE`) and rejects a start date more than 31 days before `today` (`IllegalArgumentException`). The constructor is for reconstitution and applies neither the payment-source checks nor the 31-day window.
+* `archivedOn` is nullable and only an `ARCHIVED` obligation can have one (`IllegalArgumentException`, "Only an archived obligation can have an archive date"). `archive(today, resolutions)` sets it to `today`; an obligation archived before the date was recorded keeps it `null`.
+* Obligation names are unique per user, ignoring case and including archived obligations (`OBLIGATION_NAME_ALREADY_EXISTS`). `Obligation.isSameName(name, otherName)` is the single definition: both names are normalized to Unicode NFC and lowercased with `toLowerCase(Locale.ROOT)` (`"Educación"` and `"EDUCACIÓN"` collide). It is thrown by `CreateObligation` and `ModifyObligation` (which skips the check when the name is unchanged), and by `JdbcObligationRepository` for concurrent duplicates.
+  * Limitation: the database `UNIQUE (user_id, name)` stays an exact match, so the adapter only catches concurrent creates with identical names. Two concurrent creates differing only in case both pass the Java check and are both saved. Legacy databases may also hold case-variant duplicates created before this rule (migration `004`'s header has a query to detect them); they are not repaired automatically.
+* `Obligation.create(account, category, name, amount, recurrence, today)` starts `ACTIVE`. It validates the payment source with `OperationReferences.validate` (same order and messages as `Expense.register`, without the balance check; category type must be `EXPENSE`) and rejects a start date more than 31 days before `today` (`IllegalArgumentException`). The constructors are for reconstitution (an 8-argument one without `archivedOn` and a 9-argument one with it) and apply neither the payment-source checks nor the 31-day window.
 
 ### Overdue
 
 Overdue occurrences = scheduled dates from `recurrence.startDate()` through yesterday, minus the resolved dates that are on the current calendar. A resolution off the calendar does not reduce the count. It is O(R), with R = resolutions of the obligation. Exposed as `overdueCount` and `unresolvedDatesBetween`. `overdueDates(today, resolutions)` returns those overdue dates (unresolved, from `startDate` through yesterday) in ascending order, with the same range as `overdueCount`; `SkipOverdueOccurrences` uses it. `ensureActive()` is public and throws `OBLIGATION_ARCHIVED` if the obligation is archived; the edit methods and the use cases call it. The oldest overdue date is computed by `CommitmentCalculator` through `Recurrence.firstDateBetweenExcluding`.
+
+The overdue range (from `recurrence.startDate()` through yesterday, both inclusive) is defined once in the package-private record `OverdueRange`, shared by `Obligation` and `ObligationTimeline`.
+
+### ObligationTimeline
+
+`ObligationTimeline(Recurrence recurrence, ObligationStatus status, Set<LocalDate> resolvedDates)` is a pure record (`com.rauldev.personalfinance.domain.ObligationTimeline`) for read-side callers that hold the calendar, the status, and the due dates of all the resolutions instead of the `Obligation` aggregate. `resolvedDates` are those of every resolution (paid or skipped); dates off the current calendar are ignored. Methods, all taking `today`: `overdueDates` (ascending), `overdueCount`, `upcomingDates(today, limit)` (the first unresolved scheduled dates on or after `today`), and `nextDueDate` (the oldest overdue date if any, otherwise the first unresolved date on or after `today`). Its overdue definition is the same as `Obligation.overdueDates`. An archived obligation has nothing left to resolve: no overdue, no upcoming, and no next due date.
 
 ### Edit Rules
 
@@ -337,7 +346,7 @@ Edit methods: `rename`, `changeAmount`, `changePaymentSource(account, category)`
 * Date `n` is always computed from the anchor, never from the previous date, so clamping never accumulates: `ONCE` is only `startDate`; `WEEKLY` is `startDate + 7·n` days; `BIWEEKLY` is `startDate + 14·n` days (both independent of the month); `MONTHLY` is `startDate.plusMonths(n)`; `YEARLY` is `startDate.plusYears(n)`.
 * Month-end clamping without carry-over: a day that does not exist in the month becomes the last day of that month (anchor 31 Jan gives 28/29 Feb, then 31 Mar). Anchor 29 Feb gives 28 Feb in non-leap years and 29 Feb in leap years.
 * No date is before `startDate` or after `endDate` (inclusive).
-* Operations are pure (no clock, no I/O). `countBetween` and `isScheduled` are O(1); `datesBetween` is O(k) with k = returned dates. `unresolvedDatesBetween` is O(k) with k = scheduled dates in the range, because it enumerates them all and then filters out the resolved ones. `countUnresolvedBetween` and `firstDateBetweenExcluding` take a set of resolved dates and are O(R), with R = resolved dates.
+* Operations are pure (no clock, no I/O). `countBetween` and `isScheduled` are O(1); `datesBetween` is O(k) with k = returned dates. `unresolvedDatesBetween` is O(k) with k = scheduled dates in the range, because it enumerates them all and then filters out the resolved ones. `countUnresolvedBetween` and `firstDateBetweenExcluding` take a set of resolved dates and are O(R), with R = resolved dates. `firstDatesOnOrAfterExcluding(from, excluded, limit)` lists the first `limit` (>= 1) scheduled dates on or after `from` that are not excluded; it works on calendars without an end date, visits at most `limit + excluded.size()` dates, and returns fewer when the calendar ends first.
 
 ---
 
@@ -414,7 +423,7 @@ A request that is well-formed but violates a business rule given the current sta
 | `OPERATION_ALREADY_CANCELLED` | `Income` / `Expense` `ensureCancellable()` and `cancel()` (invoked by `CancelOperation`) |
 | `ACCOUNT_NAME_ALREADY_EXISTS` | `CreateAccount`, `ModifyAccount`; `JdbcAccountRepository` (concurrent duplicates) |
 | `CATEGORY_NAME_ALREADY_EXISTS` | `CreateCategory`; `JdbcCategoryRepository` (concurrent duplicates) |
-| `OBLIGATION_NAME_ALREADY_EXISTS` | `CreateObligation`, `ModifyObligation`; `JdbcObligationRepository` (concurrent duplicates) |
+| `OBLIGATION_NAME_ALREADY_EXISTS` | `CreateObligation`, `ModifyObligation` (name compared ignoring case); `JdbcObligationRepository` (concurrent exact duplicates) |
 | `OBLIGATION_ARCHIVED` | Every `Obligation` edit method (`rename`, `changeAmount`, `changePaymentSource`, `changeRecurrence`, `archive`); `Obligation.ensureActive` (`SkipOverdueOccurrences`, `ReopenOccurrence`); `OccurrenceResolution.validateNewResolution` (via `paid` / `skipped` and `PayOccurrence`) |
 | `OBLIGATION_HAS_OVERDUE_OCCURRENCES` | `Obligation.changeAmount`, `changePaymentSource`, `changeRecurrence`, `archive` (current overdue); `changeRecurrence` (resulting calendar would have overdue) |
 | `OCCURRENCE_ALREADY_RESOLVED` | `SkipOccurrence`, `PayOccurrence`; `JdbcOccurrenceResolutionRepository` (concurrent resolutions) |

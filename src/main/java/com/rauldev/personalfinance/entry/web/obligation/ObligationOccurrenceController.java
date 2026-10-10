@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.rauldev.personalfinance.application.usecase.GetObligationOccurrences;
+import com.rauldev.personalfinance.application.usecase.GetObligationOccurrencesQuery;
 import com.rauldev.personalfinance.application.usecase.PayOccurrence;
 import com.rauldev.personalfinance.application.usecase.ReopenOccurrence;
 import com.rauldev.personalfinance.application.usecase.ReopenOccurrenceCommand;
@@ -23,8 +26,8 @@ import com.rauldev.personalfinance.application.usecase.SkipOverdueOccurrencesCom
 import com.rauldev.personalfinance.entry.security.CurrentUserProvider;
 
 /**
- * Occurrences of one of the current user's obligations: pay, skip, reopen, and skip every overdue
- * occurrence.
+ * Occurrences of one of the current user's obligations: list them, pay, skip, reopen, and skip
+ * every overdue occurrence.
  *
  * <p>An occurrence is addressed by its due date in the path ({@code .../occurrences/2026-10-15/pay}).
  * {@link PathVariable} converts the segment to a {@link LocalDate} using ISO-8601
@@ -49,6 +52,7 @@ public class ObligationOccurrenceController {
     private final SkipOccurrence skipOccurrence;
     private final SkipOverdueOccurrences skipOverdueOccurrences;
     private final ReopenOccurrence reopenOccurrence;
+    private final GetObligationOccurrences getObligationOccurrences;
     private final CurrentUserProvider currentUserProvider;
 
     public ObligationOccurrenceController(
@@ -56,6 +60,7 @@ public class ObligationOccurrenceController {
         SkipOccurrence skipOccurrence,
         SkipOverdueOccurrences skipOverdueOccurrences,
         ReopenOccurrence reopenOccurrence,
+        GetObligationOccurrences getObligationOccurrences,
         CurrentUserProvider currentUserProvider
     ) {
         this.payOccurrence = Objects.requireNonNull(payOccurrence, "Pay occurrence cannot be null");
@@ -63,7 +68,20 @@ public class ObligationOccurrenceController {
         this.skipOverdueOccurrences = Objects.requireNonNull(
             skipOverdueOccurrences, "Skip overdue occurrences cannot be null");
         this.reopenOccurrence = Objects.requireNonNull(reopenOccurrence, "Reopen occurrence cannot be null");
+        this.getObligationOccurrences = Objects.requireNonNull(
+            getObligationOccurrences, "Get obligation occurrences cannot be null");
         this.currentUserProvider = Objects.requireNonNull(currentUserProvider, "Current user provider cannot be null");
+    }
+
+    /**
+     * Lists the occurrences of one obligation today (see {@link ObligationOccurrencesResponse}); a
+     * missing obligation or another user's answers 404. An archived obligation has empty
+     * {@code overdue} and {@code upcoming} but keeps its {@code resolved}.
+     */
+    @GetMapping("/occurrences")
+    public ObligationOccurrencesResponse occurrences(@PathVariable UUID obligationId) {
+        return ObligationOccurrencesResponse.from(getObligationOccurrences.execute(
+            new GetObligationOccurrencesQuery(currentUserProvider.currentUserId(), obligationId)));
     }
 
     /**

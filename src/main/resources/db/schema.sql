@@ -93,6 +93,7 @@ CREATE TABLE obligations (
     start_date  TEXT    NOT NULL,
     end_date    TEXT,
     status      TEXT    NOT NULL,
+    archived_on TEXT,
     created_at  TEXT    NOT NULL    DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
     FOREIGN KEY (user_id)     REFERENCES users (id)      ON DELETE CASCADE,

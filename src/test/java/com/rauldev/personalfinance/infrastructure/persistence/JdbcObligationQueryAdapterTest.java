@@ -376,7 +376,7 @@ class JdbcObligationQueryAdapterTest {
     private static ObligationDetails expected(UUID id, String name, long cents, Frequency frequency,
                                               LocalDate start, LocalDate end, ObligationStatus status) {
         return new ObligationDetails(id, name, Money.ofCents(cents), new AccountSummary(ACCOUNT_A_ID, "Wallet"),
-            new CategorySummary(CATEGORY_A_ID, "Rent"), new Recurrence(frequency, start, end), status);
+            new CategorySummary(CATEGORY_A_ID, "Rent"), new Recurrence(frequency, start, end), status, null);
     }
 
     private void insertObligation(UUID id, UUID userId, String name, long amount, String frequency, String start,

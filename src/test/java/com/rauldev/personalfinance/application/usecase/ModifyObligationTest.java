@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -280,13 +281,13 @@ class ModifyObligationTest {
     }
 
     @Test
-    void execute_shouldAllowObligationToKeepItsOwnName() {
+    void execute_shouldNotCheckDuplicateNameWhenNameIsUnchanged() {
         Obligation obligation = seed();
 
         UUID result = useCase().execute(rename(obligation, "Rent"));
 
         assertEquals(obligation.id(), result);
-        assertEquals(obligation.id(), obligationRepository.lastExcludedId);
+        assertNull(obligationRepository.lastExcludedId);
         assertEquals(1, obligationRepository.updateCalls);
         assertEquals("Rent", persisted(obligation).name());
     }

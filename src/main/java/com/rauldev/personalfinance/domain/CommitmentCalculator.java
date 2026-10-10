@@ -118,10 +118,10 @@ public final class CommitmentCalculator {
         }
 
         Recurrence recurrence = obligation.recurrence();
-        LocalDate yesterday = today.minusDays(1);
-        long overdueCount = recurrence.countUnresolvedBetween(recurrence.startDate(), yesterday, resolvedDates);
+        OverdueRange overdueRange = OverdueRange.of(recurrence, today);
+        long overdueCount = recurrence.countUnresolvedBetween(overdueRange.from(), overdueRange.to(), resolvedDates);
         Optional<LocalDate> oldestOverdue = overdueCount > 0
-            ? recurrence.firstDateBetweenExcluding(recurrence.startDate(), yesterday, resolvedDates)
+            ? recurrence.firstDateBetweenExcluding(overdueRange.from(), overdueRange.to(), resolvedDates)
             : Optional.empty();
         List<LocalDate> pendingDates = recurrence.unresolvedDatesBetween(today, today.plusDays(horizonDays - 1L),
             resolvedDates);

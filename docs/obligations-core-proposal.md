@@ -52,6 +52,17 @@ Decisiones al implementar los casos de uso; prevalecen sobre el texto original d
    * **`CancelOperation`** recibe `(AccountRepository, IncomeOperationRepository, ExpenseOperationRepository, ReversalRepository, OccurrenceResolutionRepository, TransactionManager, Clock)` y usa `Instant.now(clock)`, lo que **resuelve el conflicto C1**. Al cancelar un gasto, tras el `Reversal` y las actualizaciones y en la misma transacción, ejecuta `findByExpenseId(expense.id()).ifPresent(r -> delete(r.id()))`. El gasto se carga con `findByIdAndUserId` antes de la búsqueda de la resolución (que no filtra por usuario), así que la propiedad se comprueba primero. Los ingresos nunca tocan resoluciones.
    * **C6 sigue abierto**: `RegisterExpense` acepta fechas de operación futuras y `PayOccurrence` las rechaza.
 
+### Cambios posteriores (rama `feature/obligation-occurrences`)
+
+Decisiones del desarrollador después del paso 4; prevalecen sobre el texto original donde haya diferencias.
+
+1. **Nombre único sin distinguir mayúsculas**, archivadas incluidas (P2, `OBLIGATION_NAME_ALREADY_EXISTS`): `Obligation.isSameName` normaliza a NFC y compara con `toLowerCase(Locale.ROOT)` en Java. `existsByUserIdAndName` y `existsByUserIdAndNameAndIdNot` leen los nombres del usuario y comparan en Java (el paso 2, decisión 1, ya no aplica: no es SQL). `ModifyObligation` no comprueba el nombre cuando no cambia. El `UNIQUE (user_id, name)` sigue exacto, así que dos altas concurrentes que difieren solo en mayúsculas no se detectan (límite conocido, ver `backlog.md`).
+2. **Fecha de archivo**: `ArchiveObligation` guarda el día de hoy en `obligations.archived_on` (columna `TEXT` nula; migración aditiva `004-obligation-archived-on.sql`). `Obligation.archivedOn()` es `Optional<LocalDate>`, solo existe con `ARCHIVED` y es nula en las archivadas antes de la migración. Hay dos constructores de reconstitución (8 y 9 argumentos).
+3. **Lado de lectura de ocurrencias**: `GET /api/v1/obligations/{id}/occurrences` (`GetObligationOccurrences`, `GetObligationOccurrencesQuery(userId, obligationId)`) devuelve `{overdue (todas, ascendente), upcoming (las 3 próximas pendientes desde hoy), resolved (las 4 últimas por `dueDate` descendente, con pagos adelantados)}`; cada ocurrencia es `{dueDate, status OVERDUE|PENDING|PAID|SKIPPED, expense {id, amountCents, operationDate}|null}`. Una obligación archivada devuelve `overdue` y `upcoming` vacías.
+4. **`ObligationResponse`** agrega `nextDueDate`, `overdueCount` y `archivedOn`. `ListObligations` y `GetObligation` reciben `(ObligationQueryPort, TransactionManager, Clock)`, corren en una transacción de lectura y devuelven `ObligationOverview`.
+5. **Dominio de lectura**: el record `ObligationTimeline` calcula vencidas, próximas y siguiente fecha desde `Recurrence`, el estado y las fechas resueltas, sin el agregado; el record de paquete `OverdueRange` es la única definición del rango de vencidas (de `startDate` a ayer), compartida con `Obligation`. `Recurrence.firstDatesOnOrAfterExcluding` lista las primeras fechas sin resolver desde una fecha.
+6. **`ObligationQueryPort`** agrega `findResolutionsByUserId` y `findResolvedOccurrences`; el gasto de una resolución `PAID` se une con `LEFT JOIN` acotado al usuario de su cuenta.
+
 ### Paso 4: diseño aprobado e implementado
 
 Diseño del lado de lectura del Dashboard, aprobado por el desarrollador el 2026-10-04 e **implementado** (el endpoint `GET /api/v1/dashboard` existe; ver "Fuera de alcance"); prevalece sobre el texto original donde haya diferencias (secciones 6 y 10). Es una sola rama y un solo flujo, sin división 4a/4b (decisión 10). Los nombres de los accesores se ajustan a los registros de dominio reales.
@@ -172,12 +183,13 @@ Solo modela **salidas de dinero**. Los ingresos esperados quedan fuera del MVP.
 Obligation
 ├── id: UUID
 ├── userId: UUID
-├── name: String                 único por usuario
+├── name: String                 único por usuario, sin distinguir mayúsculas
 ├── amount: Money                monto esperado, > 0
 ├── accountId: UUID              cuenta desde la que se paga
 ├── categoryId: UUID             categoría EXPENSE del gasto al pagar
 ├── recurrence: Recurrence       value object: frequency + startDate (ancla) + endDate (opcional)
-└── status: ObligationStatus     ACTIVE | ARCHIVED
+├── status: ObligationStatus     ACTIVE | ARCHIVED
+└── archivedOn: LocalDate | null día del archivo; solo con ARCHIVED
 ```
 
 Invariantes:
@@ -485,6 +497,7 @@ CREATE TABLE obligations (
     start_date  TEXT    NOT NULL,
     end_date    TEXT,
     status      TEXT    NOT NULL,
+    archived_on TEXT,                                           -- agregado por la migración 004
     created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
     FOREIGN KEY (user_id)     REFERENCES users (id)      ON DELETE CASCADE,
