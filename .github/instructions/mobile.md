@@ -6,7 +6,7 @@
 * **Language:** TypeScript in strict mode (`mobile/tsconfig.json` extends `expo/tsconfig.base`).
 * **Runtime:** Node 24 (installed with nvm).
 * **Quality tools:** ESLint 9 (`eslint-config-expo` + `eslint-plugin-jsdoc`), Prettier 3, and `expo-doctor`.
-* **Navigation and server data:** Expo Router and TanStack Query (see Architecture). Neither is installed yet; add them with `npx expo install` when the first screen needs them.
+* **Navigation and server data:** Expo Router (entry `expo-router/entry`, scheme `personalfinance`) and TanStack Query (see Architecture). `react-native-svg` draws the few icons the designs use.
 * **Tests:** none yet. Do not add a test framework or test files until the developer asks for it.
 * `mobile/AGENTS.md` comes from the Expo template and holds Expo-specific rules (versioned docs, `npx expo install`, native folders). Read it before touching Expo APIs.
 
@@ -39,47 +39,66 @@ The app is layered like the backend: dependencies point inward. ESLint enforces 
 
 ```text
 mobile/
-  App.tsx                Root component (until Expo Router is installed): mounts the providers and the first screen
-  index.ts               Expo entry point (registerRootComponent)
+  .env.example           Template for .env.local (EXPO_PUBLIC_API_URL)
   src/
     app/                 Routes (Expo Router). Thin screens that only compose features
-    features/<feature>/  One folder per product area: dashboard, operations, obligations, accounts
-    api/                 Typed HTTP client, API types, ApiError, TanStack Query client and keys
-    lib/                 Pure helpers: money (cents → MXN), ISO dates
+    features/<feature>/  One folder per product area: only what is specific to its screens
+    shared/              App code that any feature can reuse: screen scaffolding, toast, error copy, list patterns
+    api/                 HTTP client, ApiError, and one module per resource (types, endpoints, queries, mutations)
+    lib/                 Pure helpers: money (cents → MXN), ISO dates and their relative texts
     design-system/       Tokens, theme, and base components (see Design System)
 ```
 
 ```text
-app → features → api / lib / design-system
-          api  → lib
+app → features → shared → api / lib / design-system
+                   api  → lib
 ```
 
 * **`app/`** holds routes only. A route file renders a screen exported by a feature and wires navigation; it holds no data fetching, business logic, or styling of its own. Nothing imports from `app/`.
-* **`features/<feature>/`** holds the screens, components, and hooks of one product area. A feature never imports another feature: shared code moves down to `lib/` or `api/`. A new folder under `features/` is picked up by the lint rules automatically.
-* **`api/`** knows nothing about the UI. It may import only `lib/`.
+* **`features/<feature>/`** holds only what is specific to one product area: its screens, the sections that only those screens show, and the mapping from API data to what those screens render (`model.ts`). A feature never imports another feature. A new folder under `features/` is picked up by the lint rules automatically.
+* **`shared/`** holds app code that is not specific to one feature and that several screens use or will use: screen scaffolding (`Screen`, `ScreenLoading`, `ScreenError`, and the `useRefresh` pull-to-refresh hook), the toast (`Toast`, `useToast`), error copy for API errors (`errorMessage`), the mutation lock (`useMutationLock`), and list and row patterns from the screen designs (`SectionTitle`, `ListGroup`, `Notice`, `OperationRow` with `operationDisplay`). `Screen` provides the background, safe area, scrolling sections, and refresh control, plus `header` and `overlay` slots; it does not pad the `header`, so each screen pads its own. It may import `api/`, `lib/`, and `design-system/`, never `features/` or `app/`.
+* **`api/`** knows nothing about the UI. It may import only `lib/`. It is organized by resource (see Server data).
 * **`lib/`** holds pure helpers with no React Native, UI, or API code. It imports nothing from the other layers.
 * **`design-system/`** is self-contained. It imports nothing from the other layers.
-* **Public entry points.** `design-system/`, `api/`, `lib/`, and every feature expose a public `index.ts`. Code outside a module imports only that index (`../../api`), never its inner files (`../../api/client`). Inside a module, files import each other directly.
-* Keep one component per file, named after the component (`Button.tsx`).
+* **Public entry points.** `design-system/`, `shared/`, `api/`, `lib/`, and every feature expose a public `index.ts`. Code outside a module imports only that index (`../../api`), never its inner files (`../../api/client`). Inside a module, files import each other directly.
+* Keep one exported component per file, named after the component (`Button.tsx`). Small private subcomponents used only by that component (a row, an icon) may live in the same file.
+
+### Where code goes (reuse first)
+
+Before writing anything, look for it in `design-system/`, `shared/`, `lib/`, and `api/`, in that order, and reuse it. When it does not exist, place it by asking who else would use it:
+
+| What it is | Where it goes |
+|---|---|
+| A pure function with no React (formatting, parsing, date math, text for a value) | `lib/` |
+| Talking to the server: types, endpoints, query options, mutations, cache invalidation | `api/<resource>.ts` |
+| A component or hook that another screen would use too, even if only one screen uses it today | `shared/` |
+| A section, text, or mapping that only makes sense on one feature's screens | `features/<feature>/` |
+| A visual primitive from the source design system (Lucas DS) | `design-system/`, only when the design system defines it |
+
+* A screen is composition: it wires queries and mutations to sections and shared scaffolding. Logic that does not depend on React (sorting, grouping, texts) goes in the feature's `model.ts` or in `lib/`, not in components.
+* Do not copy code between features. When a second feature needs something that lives in a feature, move it to `shared/`, `lib/`, or `api/` in the same change.
+* Do not create a shared abstraction for something only one screen needs and no other planned screen would use; keep it in the feature until a second use appears.
 
 ### Navigation
 
 * Use **Expo Router**, as `mobile/AGENTS.md` describes; routes live in `src/app/`, and `_layout.tsx` files define navigators.
-* Planned navigation: tabs for Home (dashboard), Operations (history), Obligations, and Accounts; registering an operation opens as a modal sheet. The screen list is final once the "Dashboard Finanzas" design from Claude Design is available.
+* `src/app/_layout.tsx` mounts the app-wide providers (`SafeAreaProvider` → `QueryClientProvider` → `DesignSystemProvider`) and a header-less `Stack`. `src/app/index.tsx` is the home route (the dashboard).
+* Screens follow the Claude Design project "Dashboard Finanzas". It has no tabs: the home screen is the dashboard, with a bottom action bar (Ingreso, + Gasto, Transferir) that opens sheets. The bar and the registration sheet are not built yet: the sheet is being redesigned because the API requires an account and a category. Revisión, Transferir, and Agregar compromiso stay hidden until they have a design (and, for Revisión, an endpoint).
 
 ### Server data (TanStack Query)
 
-* All server data goes through **TanStack Query**. Screens never call `fetch` or the API client directly: each feature exposes hooks (`useDashboard`, `usePayOccurrence`, ...) built on the API functions in `api/`.
-* Query keys are defined in one place in `api/` and start with the resource (`['dashboard']`, `['operations', filters]`, `['obligations']`, `['accounts']`, `['categories']`).
-* Every mutation invalidates the queries whose data it changes; for example, paying an occurrence invalidates the dashboard, obligations, operations, and accounts.
-* **Never retry a mutation.** Registrations and payments are not idempotent (`docs/backlog.md` §3): set `retry: 0` on mutations, and disable the submit button while a mutation is pending. Only queries (GET) may be retried.
-* Every screen handles the loading, empty, and error states of its queries, and supports pull-to-refresh.
+* All server data goes through **TanStack Query**. Screens and components never call `fetch` or the endpoint functions directly.
+* `api/` is organized by resource: `api/<resource>.ts` (`dashboard.ts`, `obligations.ts`, `operations.ts`, ...) holds the resource's types, its endpoint functions, a query options factory per query (`dashboardQuery()`, built with TanStack's `queryOptions`), and a hook per mutation (`usePayOccurrence()`). Features read data with `useQuery(dashboardQuery())` and change it with the mutation hooks.
+* Query keys are defined in one place in `api/` and start with the resource (`queryKeys` in `api/queryClient.ts`: `['dashboard']`, `['obligations']`, `['operations']`, `['accounts']`).
+* **Invalidation lives with the mutation**, in `api/`, never in a feature: every mutation hook invalidates the queries whose data it changes. Mutations that move money (registrations, payments, cancellations) share one invalidation helper (`invalidateMoneyMovement` in `api/invalidation.ts`), so they always refresh the same data (dashboard, obligations, operations, accounts).
+* **Never retry a mutation.** Registrations and payments are not idempotent (`docs/backlog.md` §3): mutations have `retry: 0`, and a screen runs them through the shared mutation lock, which blocks a second submission synchronously and keeps the submit buttons inactive until the mutation settles. Only queries (GET) may be retried.
+* Every screen handles the loading, empty, and error states of its queries, and supports pull-to-refresh, with the scaffolding in `shared/`.
 
 ### API client
 
-* `api/` exposes one function per endpoint, typed with hand-written TypeScript types that mirror `architecture.md` → Entry Layer. There is no runtime validation (no Zod); when an OpenAPI contract exists (`docs/backlog.md` §7), the types are generated from it.
+* Each resource module exposes one function per endpoint, typed with hand-written TypeScript types that mirror `architecture.md` → Entry Layer. There is no runtime validation (no Zod); when an OpenAPI contract exists (`docs/backlog.md` §7), the types are generated from it.
 * Request and response types use the API's names (`OperationResponse`, `amountCents`). Enums are string literal unions (`'INCOME' | 'EXPENSE'`).
-* Errors are `application/problem+json`. The client turns every non-2xx response into an `ApiError` with `status`, `title`, `detail`, and the stable `code` of a 409. UI copy for an error is chosen from `status` and `code`, never from the server's `detail`.
+* Errors are `application/problem+json`. The client turns every non-2xx response into an `ApiError` with `status`, `title`, `detail`, and the stable `code` of a 409. UI copy for an error is chosen from `status` and `code`, never from the server's `detail`, through the single error copy table in `shared/` (`errorMessage.ts`). Pending: some of its texts are still payment-specific (`ACCOUNT_INACTIVE`, `CATEGORY_INACTIVE`, `OPERATION_ALREADY_CANCELLED`); make them neutral when a second feature (registration, history) reuses the table.
 * The base URL comes from `EXPO_PUBLIC_API_URL` (in `mobile/.env.local`, outside git). A phone needs the machine's LAN address (`http://192.168.x.x:8080`), not `localhost`.
 
 ### Money, dates, and forms
@@ -98,7 +117,7 @@ app → features → api / lib / design-system
 * Use `interface` for component props and object contracts, and `type` for unions and aliases.
 * Name props interfaces `<Component>Props` and export them next to the component.
 * Use function components and hooks. No class components.
-* Use named exports. `App.tsx` keeps its default export because Expo requires it.
+* Use named exports. Route files in `src/app/` keep their default export because Expo Router requires it.
 * Use `PascalCase` for components and types, `camelCase` for variables, functions, and hooks (`useTheme`), and `UPPER_SNAKE_CASE` for module-level constants that are not tokens.
 
 ---
@@ -131,9 +150,11 @@ Code is always commented. Comments are written in **English**, like the Java cod
   * On `role.<role>.fill`, text uses `role.<role>.on`.
   * Color never carries meaning alone: every state has a word or an icon.
   * No decorative emoji, no gradients, no cards with a colored left border.
-  * Text that users read and text inputs are never smaller than 16 px.
+  * Body text and text inputs are never smaller than 16 px (`body`). Secondary and meta text may use `body-sm` (14 px), and badges and small links `caption` (12 px), the system's minimum.
 * Anything the design system marks as **pending** (destructive button, icon-only button, loading state, select, textarea, clickable card, icons) does not exist yet. Do not invent it; report that it is missing.
 * A new token or component must stay faithful to the source design system. If it does not exist there, propose it to the developer instead of adding it.
+* **Screen designs may use sizes outside the scale** (e.g. the dashboard's 52 px amount). Such values live only in a `designSpec.ts`, as named constants with a JSDoc that cites the design: `shared/designSpec.ts` for patterns several screens use (section titles, toasts), the feature's `designSpec.ts` for values only its screens use. Colors, spacing, radii, control heights, and fonts still come from the tokens.
+* Use `Text`'s `weight` prop (400, 500, 600) for a weight other than the variant's; do not set `fontFamily` by hand in screens.
 
 ---
 
