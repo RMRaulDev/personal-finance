@@ -43,6 +43,3 @@ build/
 ### Mac OS ###
 .DS_Store
 
-.github
-.claude
-CLAUDE.md
