@@ -6,6 +6,7 @@
 * **Language:** TypeScript in strict mode (`mobile/tsconfig.json` extends `expo/tsconfig.base`).
 * **Runtime:** Node 24 (installed with nvm).
 * **Quality tools:** ESLint 9 (`eslint-config-expo` + `eslint-plugin-jsdoc`), Prettier 3, and `expo-doctor`.
+* **Navigation and server data:** Expo Router and TanStack Query (see Architecture). Neither is installed yet; add them with `npx expo install` when the first screen needs them.
 * **Tests:** none yet. Do not add a test framework or test files until the developer asks for it.
 * `mobile/AGENTS.md` comes from the Expo template and holds Expo-specific rules (versioned docs, `npx expo install`, native folders). Read it before touching Expo APIs.
 
@@ -32,19 +33,61 @@ Run them from `mobile/` (or with `npm --prefix mobile run <script>` from the rep
 
 ---
 
-## Structure
+## Architecture
+
+The app is layered like the backend: dependencies point inward. ESLint enforces these rules (`import/no-restricted-paths` and `import/no-cycle` in `mobile/eslint.config.js`); `npm run lint` fails when one is broken.
 
 ```text
 mobile/
-  App.tsx              Root component: mounts DesignSystemProvider and the first screen
-  index.ts             Expo entry point (registerRootComponent)
+  App.tsx                Root component (until Expo Router is installed): mounts the providers and the first screen
+  index.ts               Expo entry point (registerRootComponent)
   src/
-    design-system/     Tokens, theme, and base components (see Design System)
+    app/                 Routes (Expo Router). Thin screens that only compose features
+    features/<feature>/  One folder per product area: dashboard, operations, obligations, accounts
+    api/                 Typed HTTP client, API types, ApiError, TanStack Query client and keys
+    lib/                 Pure helpers: money (cents → MXN), ISO dates
+    design-system/       Tokens, theme, and base components (see Design System)
 ```
 
-* Application code lives in `mobile/src/`. Keep one component per file, named after the component (`Button.tsx`).
-* Each folder that other code imports from exposes a public `index.ts`. Import from it (`./src/design-system`), not from inner files.
-* Navigation is not set up yet. When it is needed, use Expo Router as described in `mobile/AGENTS.md`.
+```text
+app → features → api / lib / design-system
+          api  → lib
+```
+
+* **`app/`** holds routes only. A route file renders a screen exported by a feature and wires navigation; it holds no data fetching, business logic, or styling of its own. Nothing imports from `app/`.
+* **`features/<feature>/`** holds the screens, components, and hooks of one product area. A feature never imports another feature: shared code moves down to `lib/` or `api/`. A new folder under `features/` is picked up by the lint rules automatically.
+* **`api/`** knows nothing about the UI. It may import only `lib/`.
+* **`lib/`** holds pure helpers with no React Native, UI, or API code. It imports nothing from the other layers.
+* **`design-system/`** is self-contained. It imports nothing from the other layers.
+* **Public entry points.** `design-system/`, `api/`, `lib/`, and every feature expose a public `index.ts`. Code outside a module imports only that index (`../../api`), never its inner files (`../../api/client`). Inside a module, files import each other directly.
+* Keep one component per file, named after the component (`Button.tsx`).
+
+### Navigation
+
+* Use **Expo Router**, as `mobile/AGENTS.md` describes; routes live in `src/app/`, and `_layout.tsx` files define navigators.
+* Planned navigation: tabs for Home (dashboard), Operations (history), Obligations, and Accounts; registering an operation opens as a modal sheet. The screen list is final once the "Dashboard Finanzas" design from Claude Design is available.
+
+### Server data (TanStack Query)
+
+* All server data goes through **TanStack Query**. Screens never call `fetch` or the API client directly: each feature exposes hooks (`useDashboard`, `usePayOccurrence`, ...) built on the API functions in `api/`.
+* Query keys are defined in one place in `api/` and start with the resource (`['dashboard']`, `['operations', filters]`, `['obligations']`, `['accounts']`, `['categories']`).
+* Every mutation invalidates the queries whose data it changes; for example, paying an occurrence invalidates the dashboard, obligations, operations, and accounts.
+* **Never retry a mutation.** Registrations and payments are not idempotent (`docs/backlog.md` §3): set `retry: 0` on mutations, and disable the submit button while a mutation is pending. Only queries (GET) may be retried.
+* Every screen handles the loading, empty, and error states of its queries, and supports pull-to-refresh.
+
+### API client
+
+* `api/` exposes one function per endpoint, typed with hand-written TypeScript types that mirror `architecture.md` → Entry Layer. There is no runtime validation (no Zod); when an OpenAPI contract exists (`docs/backlog.md` §7), the types are generated from it.
+* Request and response types use the API's names (`OperationResponse`, `amountCents`). Enums are string literal unions (`'INCOME' | 'EXPENSE'`).
+* Errors are `application/problem+json`. The client turns every non-2xx response into an `ApiError` with `status`, `title`, `detail`, and the stable `code` of a 409. UI copy for an error is chosen from `status` and `code`, never from the server's `detail`.
+* The base URL comes from `EXPO_PUBLIC_API_URL` (in `mobile/.env.local`, outside git). A phone needs the machine's LAN address (`http://192.168.x.x:8080`), not `localhost`.
+
+### Money, dates, and forms
+
+* Money stays in integer cents everywhere in the app. `lib/` formats it for display with `Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })`, and parses user input into cents without floating-point arithmetic.
+* API dates are ISO-8601 calendar dates (`2026-10-10`) without a time zone. Keep them as strings; never build them through `new Date(...)` in UTC. "Today" is the server's: use `horizon.from` from the dashboard (`docs/backlog.md` §9.6).
+* Forms use `useState` and the design system `Field`. No form library.
+* There is no global client state store. React context is only for cross-cutting providers (theme, query client).
 
 ---
 
@@ -105,7 +148,7 @@ Code is always commented. Comments are written in **English**, like the Java cod
 
 ## Backend API
 
-* The app consumes the REST API under `/api/v1` (see `architecture.md` → Entry Layer). It never reimplements business rules: validation in the app only improves the user experience; the backend decides.
+* The app consumes the REST API under `/api/v1` (see `architecture.md` → Entry Layer) through `api/` and TanStack Query (see Architecture). It never reimplements business rules: validation in the app only improves the user experience; the backend decides.
 * Follow the API's JSON conventions (`architecture.md` → Entry Layer): camelCase, UUID ids, ISO-8601 dates, uppercase enum strings.
 * Money is an integer number of cents in `...Cents` fields. Keep it in cents in the app and convert to MXN only to display it; never do money arithmetic with floating-point decimals.
 * Show API errors to the user with the design system (for example, `Field`'s `error` or a `Badge` with `role="danger"` plus a word), never as raw messages or stack traces.
