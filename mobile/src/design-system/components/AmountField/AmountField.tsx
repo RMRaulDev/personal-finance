@@ -1,0 +1,92 @@
+import { useId, useState } from 'react';
+import { TextInput, View } from 'react-native';
+
+import { useTheme, useThemedStyles } from '../../theme';
+import { Text } from '../Text';
+
+import { createAmountFieldStyles } from './AmountField.styles';
+
+/** `AmountField` props: label, the typed text, and its help or error. */
+export interface AmountFieldProps {
+  /** Visible label. Screen readers hear it followed by ", en pesos", because "$" and "MXN" are hidden. */
+  label: string;
+  /**
+   * The text as shown, already cleaned and grouped by the caller (`formatAmountInput` in `lib/`).
+   * The field never parses it: money stays in the caller's integer cents.
+   */
+  value: string;
+  /** Receives the raw text the user typed or pasted. */
+  onChangeText: (text: string) => void;
+  /** Help text below the field. Hidden when there is an error. */
+  help?: string;
+  /** What happened and what to do, in one sentence. Marks the field (and its focus ring) as invalid. */
+  error?: string;
+  /** Focuses the field (and opens the decimal keyboard) when it mounts. */
+  autoFocus?: boolean;
+  /** False keeps the value from changing (e.g. while it is being sent). Defaults to true. */
+  editable?: boolean;
+}
+
+/**
+ * Amount field: a 64px container with "$", the amount in the amount text style, and "MXN", for
+ * screens where typing an amount is the main task. Proposal from the "Onboarding v1" screen design,
+ * pending adoption in the Lucas DS source project.
+ */
+export function AmountField({ label, value, onChangeText, help, error, autoFocus, editable = true }: AmountFieldProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createAmountFieldStyles);
+  const [focused, setFocused] = useState(false);
+  const labelId = useId();
+  const invalid = error !== undefined;
+  const message = invalid ? error : help;
+
+  return (
+    <View style={styles.field}>
+      <Text nativeID={labelId} variant="body-sm" weight={500}>
+        {label}
+      </Text>
+      <View
+        style={[
+          styles.box,
+          invalid && styles.boxInvalid,
+          focused && styles.boxFocused,
+          focused && invalid && styles.boxFocusedInvalid,
+        ]}
+      >
+        <Text
+          variant="amount"
+          weight={500}
+          color="secondary"
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        >
+          $
+        </Text>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          autoFocus={autoFocus}
+          editable={editable}
+          keyboardType="decimal-pad"
+          placeholder="0"
+          placeholderTextColor={colors.text.secondary}
+          accessibilityLabel={`${label}, en pesos`}
+          aria-labelledby={labelId}
+          accessibilityHint={message}
+          aria-invalid={invalid}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={styles.input}
+        />
+        <Text variant="body-sm" color="secondary" accessibilityElementsHidden importantForAccessibility="no">
+          MXN
+        </Text>
+      </View>
+      {message !== undefined && (
+        <Text variant="body-sm" color={invalid ? 'danger' : 'secondary'}>
+          {message}
+        </Text>
+      )}
+    </View>
+  );
+}

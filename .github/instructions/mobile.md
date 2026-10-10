@@ -42,11 +42,34 @@ mobile/
   .env.example           Template for .env.local (EXPO_PUBLIC_API_URL)
   src/
     app/                 Routes (Expo Router). Thin screens that only compose features
-    features/<feature>/  One folder per product area: only what is specific to its screens
-    shared/              App code that any feature can reuse: screen scaffolding, toast, error copy, list patterns
-    api/                 HTTP client, ApiError, and one module per resource (types, endpoints, queries, mutations)
-    lib/                 Pure helpers: money (cents → MXN), ISO dates and their relative texts
-    design-system/       Tokens, theme, and base components (see Design System)
+    features/<feature>/  One folder per product area: <Feature>Screen.tsx, components/, <feature>.model.ts
+    shared/              App code that any feature can reuse: components/, hooks/, errors/
+    api/                 client/ (HTTP client, ApiError, query client, invalidation) and resources/<resource>/
+    lib/                 Pure helpers grouped by topic: money/, dates/
+    design-system/       tokens/, theme/, and components/ (see Design System)
+```
+
+Inside every layer, files are **grouped by unit**: a component, together with everything that belongs only to it, lives in its own folder.
+
+```text
+design-system/
+  tokens/        colors.ts · typography.ts · spacing.ts · index.ts
+  theme/         ThemeProvider.tsx · useTheme.ts · useThemedStyles.ts · DesignSystemProvider.tsx · focusRing.ts · index.ts
+  components/    Button/ (Button.tsx · Button.styles.ts · index.ts), Field/, AmountField/, ChoiceGroup/, …
+shared/
+  components/    Screen/, Toast/ (Toast.tsx · useToast.ts · …), OperationRow/, ListGroup/, Notice/, DetailRow/, SectionTitle/
+  hooks/         useMutationLock.ts · useRefresh.ts · useKeyboardVisible.ts
+  errors/        errorMessage.ts
+features/dashboard/
+  DashboardScreen.tsx · DashboardScreen.styles.ts · dashboard.model.ts · index.ts
+  components/    AvailableSummary/, CommitmentList/, RegistrationSheet/ (RegistrationSheet.tsx · .styles.ts · .model.ts · index.ts), …
+api/
+  client/        client.ts · errors.ts · queryClient.ts · invalidation.ts · index.ts
+  resources/     common/ · dashboard/ · obligations/ · operations/ · accounts/ · categories/ · setup/
+                 each: types.ts · endpoints.ts · queries.ts · mutations.ts (when it has any) · index.ts
+lib/
+  money/         format.ts · input.ts · index.ts
+  dates/         parse.ts · format.ts · relative.ts · index.ts
 ```
 
 ```text
@@ -55,13 +78,28 @@ app → features → shared → api / lib / design-system
 ```
 
 * **`app/`** holds routes only. A route file renders a screen exported by a feature and wires navigation; it holds no data fetching, business logic, or styling of its own. Nothing imports from `app/`.
-* **`features/<feature>/`** holds only what is specific to one product area: its screens, the sections that only those screens show, and the mapping from API data to what those screens render (`model.ts`). A feature never imports another feature. A new folder under `features/` is picked up by the lint rules automatically.
+* **`features/<feature>/`** holds only what is specific to one product area: its screens, the sections that only those screens show (`components/`), and the mapping from API data to what those screens render (`<feature>.model.ts`, or the `.model.ts` of the component that uses it). A feature never imports another feature. A new folder under `features/` is picked up by the lint rules automatically.
 * **`shared/`** holds app code that is not specific to one feature and that several screens use or will use: screen scaffolding (`Screen`, `ScreenLoading`, `ScreenError`, and the `useRefresh` pull-to-refresh hook), the toast (`Toast`, `useToast`), error copy for API errors (`errorMessage`), the mutation lock (`useMutationLock`), the keyboard state (`useKeyboardVisible`), and list and row patterns from the screen designs (`SectionTitle`, `ListGroup`, `Notice`, `DetailRow`, `OperationRow` with `operationDisplay`). `Screen` provides the background, safe area, scrolling sections, and refresh control, plus `header`, `footer`, and `overlay` slots; it does not pad the `header`, so each screen pads its own. `Toast` takes a `bottom` offset so it can sit above a footer. It may import `api/`, `lib/`, and `design-system/`, never `features/` or `app/`.
 * **`api/`** knows nothing about the UI. It may import only `lib/`. It is organized by resource (see Server data).
 * **`lib/`** holds pure helpers with no React Native, UI, or API code. It imports nothing from the other layers.
 * **`design-system/`** is self-contained. It imports nothing from the other layers.
-* **Public entry points.** `design-system/`, `shared/`, `api/`, `lib/`, and every feature expose a public `index.ts`. Code outside a module imports only that index (`../../api`), never its inner files (`../../api/client`). Inside a module, files import each other directly.
-* Keep one exported component per file, named after the component (`Button.tsx`). Small private subcomponents used only by that component (a row, an icon) may live in the same file.
+* **Public entry points.** `design-system/`, `shared/`, `api/`, `lib/`, and every feature expose a public `index.ts`. Code outside a module imports only that index (`../../api`), never its inner files (`../../api/client`). Inside a module, a **unit folder** (a component folder, a resource folder, a `lib` topic) also has an `index.ts`, and code outside that folder imports only it (`../components/Button`, never `../components/Button/Button.styles`). Files inside the same folder import each other directly.
+
+### Files and naming
+
+| Kind of file | Shape | Example |
+|---|---|---|
+| Component folder | `PascalCase/`, named like the component | `components/Button/` |
+| Component | `Name.tsx` | `Button.tsx` |
+| Styles of a component | `Name.styles.ts` | `Button.styles.ts` |
+| Non-React logic of a component or screen | `Name.model.ts` (`<feature>.model.ts` for logic several sections of a feature share) | `RegistrationSheet.model.ts`, `dashboard.model.ts` |
+| Hook | `useName.ts` | `useToast.ts` |
+| Grouping folder (not a component) | lowercase | `tokens/`, `hooks/`, `resources/`, `money/` |
+| Entry point | `index.ts` in every unit folder | `components/Button/index.ts` |
+
+* One exported component per file. A component's folder holds everything that belongs only to it: its styles, its model, its hook, and private subcomponents (a chip, an icon) in their own `.tsx` files. Anything another unit also needs moves out (see Where code goes).
+* **Styles live in `Name.styles.ts`.** It exports `createNameStyles(theme)`, built with `StyleSheet.create` from tokens only, and the component reads it with `useThemedStyles(createNameStyles)` from `design-system/theme` (recomputed only when the theme changes). State-dependent styles (pressed, focused, invalid) are chosen in the component among styles defined in `.styles.ts`. A `.styles.ts` imports only from `design-system/`.
+* **Moving or renaming tracked files is done with `git mv`**, never by creating a new file and deleting the old one, so git keeps each file's history.
 
 ### Where code goes (reuse first)
 
@@ -70,12 +108,12 @@ Before writing anything, look for it in `design-system/`, `shared/`, `lib/`, and
 | What it is | Where it goes |
 |---|---|
 | A pure function with no React (formatting, parsing, date math, text for a value) | `lib/` |
-| Talking to the server: types, endpoints, query options, mutations, cache invalidation | `api/<resource>.ts` |
+| Talking to the server: types, endpoints, query options, mutations, cache invalidation | `api/resources/<resource>/` (invalidation helpers in `api/client/`) |
 | A component or hook that another screen would use too, even if only one screen uses it today | `shared/` |
 | A section, text, or mapping that only makes sense on one feature's screens | `features/<feature>/` |
 | A visual primitive from the source design system (Lucas DS) | `design-system/`, only when the design system defines it |
 
-* A screen is composition: it wires queries and mutations to sections and shared scaffolding. Logic that does not depend on React (sorting, grouping, texts) goes in the feature's `model.ts` or in `lib/`, not in components.
+* A screen is composition: it wires queries and mutations to sections and shared scaffolding. Logic that does not depend on React (sorting, grouping, texts) goes in a `.model.ts` or in `lib/`, not in components.
 * Do not copy code between features. When a second feature needs something that lives in a feature, move it to `shared/`, `lib/`, or `api/` in the same change.
 * Do not create a shared abstraction for something only one screen needs and no other planned screen would use; keep it in the feature until a second use appears.
 
@@ -90,9 +128,9 @@ Before writing anything, look for it in `design-system/`, `shared/`, `lib/`, and
 ### Server data (TanStack Query)
 
 * All server data goes through **TanStack Query**. Screens and components never call `fetch` or the endpoint functions directly.
-* `api/` is organized by resource: `api/<resource>.ts` (`accounts.ts`, `categories.ts`, `dashboard.ts`, `obligations.ts`, `operations.ts`, `setup.ts`) holds the resource's types, its endpoint functions, a query options factory per query (`dashboardQuery()`, built with TanStack's `queryOptions`), and a hook per mutation (`usePayOccurrence()`). Features read data with `useQuery(dashboardQuery())` and change it with the mutation hooks.
-* Query keys are defined in one place in `api/` and start with the resource (`queryKeys` in `api/queryClient.ts`: `['dashboard']`, `['obligations']`, `['operations']`, `['accounts']`, `['categories']`).
-* **Invalidation lives with the mutation**, in `api/`, never in a feature: every mutation hook invalidates the queries whose data it changes. Mutations that move money (registrations, payments, cancellations) share one invalidation helper (`invalidateMoneyMovement` in `api/invalidation.ts`), so they always refresh the same data (dashboard, obligations, operations, accounts).
+* `api/` is organized by resource: `api/resources/<resource>/` (`accounts`, `categories`, `dashboard`, `obligations`, `operations`, `setup`; shared types in `common`) holds the resource's types (`types.ts`), its endpoint functions (`endpoints.ts`), a query options factory per query (`queries.ts`: `dashboardQuery()`, built with TanStack's `queryOptions`), and a hook per mutation (`mutations.ts`: `usePayOccurrence()`). The HTTP client, `ApiError`, the query client and keys, and the invalidation helpers live in `api/client/`. Features read data with `useQuery(dashboardQuery())` and change it with the mutation hooks.
+* Query keys are defined in one place in `api/` and start with the resource (`queryKeys` in `api/client/queryClient.ts`: `['dashboard']`, `['obligations']`, `['operations']`, `['accounts']`, `['categories']`).
+* **Invalidation lives with the mutation**, in `api/`, never in a feature: every mutation hook invalidates the queries whose data it changes. Mutations that move money (registrations, payments, cancellations) share one invalidation helper (`invalidateMoneyMovement` in `api/client/invalidation.ts`), so they always refresh the same data (dashboard, obligations, operations, accounts).
 * **Never retry a mutation.** Registrations and payments are not idempotent (`docs/backlog.md` §3): mutations have `retry: 0`, and a screen runs them through the shared mutation lock, which blocks a second submission synchronously and keeps the submit buttons inactive until the mutation settles. Only queries (GET) may be retried.
 * Every screen handles the loading, empty, and error states of its queries, and supports pull-to-refresh, with the scaffolding in `shared/`.
 
@@ -156,7 +194,7 @@ Code is always commented. Comments are written in **English**, like the Java cod
   * Body text and text inputs are never smaller than 16 px (`body`). Secondary and meta text may use `body-sm` (14 px), and badges and small links `caption` (12 px), the system's minimum.
 * Anything the design system marks as **pending** (destructive button, icon-only button, loading state, select, textarea, clickable card, icons) does not exist yet. Do not invent it; report that it is missing.
 * A new token or component must stay faithful to the source design system. If it does not exist there, propose it to the developer instead of adding it.
-* **Screen designs may use sizes outside the scale** (e.g. the dashboard's 52 px amount). Such values live only in a `designSpec.ts`, as named constants with a JSDoc that cites the design: `shared/designSpec.ts` for patterns several screens use (section titles, toasts), the feature's `designSpec.ts` for values only its screens use. Colors, spacing, radii, control heights, and fonts still come from the tokens.
+* **Screen designs may use sizes outside the scale** (e.g. the dashboard's 52 px amount). Such values live in the `.styles.ts` of the component that uses them, as named constants with a JSDoc that cites the design. Values that are not styles (durations, delays, limits) live next to the hook or model that uses them, also named and documented. Colors, spacing, radii, control heights, and fonts still come from the tokens.
 * Use `Text`'s `weight` prop (400, 500, 600) for a weight other than the variant's; do not set `fontFamily` by hand in screens.
 
 ---

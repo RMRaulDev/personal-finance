@@ -1,12 +1,12 @@
-export { accountsQuery, listAccounts, type AccountResponse, type AccountStatus } from './accounts';
+export { accountsQuery, listAccounts, type AccountResponse, type AccountStatus } from './resources/accounts';
 export {
   categoriesQuery,
   listCategories,
   type CategoryResponse,
   type CategoryStatus,
   type CategoryType,
-} from './categories';
-export type * from './common';
+} from './resources/categories';
+export type * from './resources/common';
 export {
   dashboardQuery,
   getDashboard,
@@ -20,8 +20,8 @@ export {
   type RecentActivityItem,
   type ShortfallItem,
   type UpcomingCommitment,
-} from './dashboard';
-export { ApiError, isApiError, type ApiFailureKind, type BusinessRuleCode } from './errors';
+} from './resources/dashboard';
+export { ApiError, isApiError, queryClient, queryKeys, type ApiFailureKind, type BusinessRuleCode } from './client';
 export {
   listObligations,
   obligationsQuery,
@@ -32,7 +32,7 @@ export {
   type PayOccurrenceResponse,
   type PayOccurrenceVariables,
   type Recurrence,
-} from './obligations';
+} from './resources/obligations';
 export {
   cancelOperation,
   registerExpense,
@@ -42,11 +42,10 @@ export {
   useRegisterIncome,
   type RegisterOperationRequest,
   type RegisterOperationResponse,
-} from './operations';
-export { queryClient, queryKeys } from './queryClient';
+} from './resources/operations';
 export {
   completeInitialSetup,
   useCompleteInitialSetup,
   type CompleteInitialSetupRequest,
   type CompleteInitialSetupResponse,
-} from './setup';
+} from './resources/setup';

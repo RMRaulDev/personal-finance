@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { preparationDelayMs, preparationMinimumMs } from './designSpec';
+/**
+ * The preparation screen only appears when the setup takes longer than this, in milliseconds
+ * ("Onboarding v1" design).
+ */
+const PREPARATION_DELAY_MS = 300;
+
+/** Once shown, the preparation screen stays at least this long so it does not flicker, in ms. */
+const PREPARATION_MINIMUM_MS = 600;
 
 /** What `usePreparation` returns. */
 export interface Preparation {
@@ -45,7 +52,7 @@ export function usePreparation(): Preparation {
     showTimer.current = setTimeout(() => {
       shownAt.current = Date.now();
       setVisible(true);
-    }, preparationDelayMs);
+    }, PREPARATION_DELAY_MS);
   }, []);
 
   const end = useCallback((then: () => void) => {
@@ -55,7 +62,7 @@ export function usePreparation(): Preparation {
       then();
       return;
     }
-    const remaining = Math.max(0, preparationMinimumMs - (Date.now() - since));
+    const remaining = Math.max(0, PREPARATION_MINIMUM_MS - (Date.now() - since));
     endTimer.current = setTimeout(then, remaining);
   }, []);
 
