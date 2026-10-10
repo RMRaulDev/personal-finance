@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { DesignSystemProvider, Root, Text } from './src/design-system';
 
+/** App root: mounts the design system and the first screen. */
 export default function App() {
   return (
     <DesignSystemProvider>

@@ -3,7 +3,7 @@ import type { ViewStyle } from 'react-native';
 import type { Theme } from './theme';
 import { borderWidth } from './tokens';
 
-/** Anillo de foco del sistema: 2px en `border-focus` con 2px de separación. Nunca se quita. */
+/** Design system focus ring: 2px in `border-focus` with a 2px offset. Never remove it. */
 export function focusRing(theme: Theme): ViewStyle {
   return {
     outlineStyle: 'solid',

@@ -1,5 +1,5 @@
-// Tokens del sistema de diseño de Raúl ("Lucas DS" en claude.ai/design), traducidos de tokens.css.
-// 1rem = 16px. Consume solo los semánticos (useTheme().colors); los primitivos son cableado.
+// Tokens of Raúl's design system ("Lucas DS" on claude.ai/design), translated from tokens.css.
+// 1rem = 16px. Consume only the semantic tokens (useTheme().colors); primitives are wiring.
 
 const neutral = {
   50: '#f1f9f7',
@@ -88,25 +88,31 @@ const info = {
   950: '#012037',
 } as const;
 
+/** Primitive ramps (50–950). Only used to build the semantic tokens; never used directly in the UI. */
 export const primitives = { neutral, teal, success, warning, danger, info } as const;
 
+/** Color theme: equivalent to `data-theme` in the web version. */
 export type ColorScheme = 'light' | 'dark';
+/** Color roles that carry meaning: brand and statuses. */
 export type Role = 'accent' | 'success' | 'warning' | 'danger' | 'info';
+/** All roles, in the order the guide lists them. */
 export const roles: readonly Role[] = ['accent', 'success', 'warning', 'danger', 'info'];
 
 type Ramp = Record<keyof typeof teal, string>;
 const roleRamps: Record<Role, Ramp> = { accent: teal, success, warning, danger, info };
 
+/** The six tokens of a role (`--fill-*`, `--fill-*-hover`, `--on-*`, `--bg-*`, `--border-*`, `--text-*`). */
 export interface RoleColors {
   fill: string;
   fillHover: string;
-  /** Texto sobre `fill`. En oscuro es texto oscuro a propósito. */
+  /** Text on `fill`. In dark mode it is dark text on purpose. */
   on: string;
   bg: string;
   border: string;
   text: string;
 }
 
+/** Semantic tokens of a theme: surfaces, text, borders, and roles. The only tokens the UI consumes. */
 export interface SemanticColors {
   surface: { page: string; raised: string; overlay: string; hover: string; selected: string };
   text: { primary: string; secondary: string; disabled: string };
@@ -114,7 +120,7 @@ export interface SemanticColors {
   role: Record<Role, RoleColors>;
 }
 
-// Regla de pasos de los roles: fill 600/400, hover 700/300, bg 50/950, border 200/800, text 700/300.
+// Role step rule: fill 600/400, hover 700/300, bg 50/950, border 200/800, text 700/300.
 function roleColors(scheme: ColorScheme): Record<Role, RoleColors> {
   const light = scheme === 'light';
   const entries = roles.map((role) => {
@@ -132,6 +138,7 @@ function roleColors(scheme: ColorScheme): Record<Role, RoleColors> {
   return Object.fromEntries(entries) as Record<Role, RoleColors>;
 }
 
+/** Semantic tokens per theme, resolved from the primitives exactly as in tokens.css. */
 export const colors: Record<ColorScheme, SemanticColors> = {
   light: {
     surface: {
@@ -159,7 +166,7 @@ export const colors: Record<ColorScheme, SemanticColors> = {
   },
 };
 
-/** Sombras solo para lo que flota (popovers, menús, diálogos). Las cards nunca llevan sombra. */
+/** Shadows only for floating elements (popovers, menus, dialogs). Cards never have a shadow. */
 export const shadows: Record<ColorScheme, { md: string; lg: string }> = {
   light: {
     md: '0 2px 4px #1A1F1E0F, 0 8px 16px #1A1F1E14',
@@ -171,7 +178,7 @@ export const shadows: Record<ColorScheme, { md: string; lg: string }> = {
   },
 };
 
-/** Base 4px; la clave es el multiplicador (`space[4]` = 16). `--space-0-5` es `space[0.5]`. */
+/** 4px base; the key is the multiplier (`space[4]` = 16). `--space-0-5` is `space[0.5]`. */
 export const space = {
   0: 0,
   0.5: 2,
@@ -189,30 +196,33 @@ export const space = {
   24: 96,
 } as const;
 
+/** Radii: `sm` badges, `md` controls, `lg` cards, `xl` overlays, `full` pills. They do not scale with size. */
 export const radius = { none: 0, sm: 4, md: 6, lg: 8, xl: 12, full: 9999 } as const;
 
+/** Control heights: `sm` tables and toolbars, `md` default, `lg` mobile forms and CTAs. */
 export const control = { sm: 32, md: 40, lg: 48 } as const;
 
-/** Grosores permitidos como literales: bordes de 1px y anillo de foco de 2px. */
+/** The only widths allowed as literals: 1px borders and the 2px focus ring. */
 export const borderWidth = { hairline: 1, focus: 2 } as const;
 
-// Inter (interfaz) y JetBrains Mono (código y datos). En React Native cada peso es una familia distinta.
+/** Inter (interface) and JetBrains Mono (code and data). In React Native each weight is a separate family. */
 export const fontFamily = {
   sans: { 400: 'Inter_400Regular', 500: 'Inter_500Medium', 600: 'Inter_600SemiBold' },
   mono: 'JetBrainsMono_400Regular',
 } as const;
 
+/** Allowed weights: 400 text, 500 UI and labels, 600 titles. Never 700. */
 export type FontWeight = keyof typeof fontFamily.sans;
 
 interface FixedTextStyle {
   size: number;
   leading: number;
   weight: FontWeight;
-  /** En em, como en tokens.css. */
+  /** In em, as in tokens.css. */
   tracking?: number;
 }
 
-/** `clamp(min, base + vw·ancho/100, max)`, el mismo cálculo que el CSS fluido. */
+/** `clamp(min, base + vw·width/100, max)`, the same calculation as the fluid CSS. */
 export interface Fluid {
   min: number;
   base: number;
@@ -224,12 +234,13 @@ interface FluidTextStyle extends Omit<FixedTextStyle, 'size'> {
   size: Fluid;
 }
 
+/** Type scale: size in px, relative line height, weight, and tracking in em. */
 export const textStyles = {
-  // Fluidos: solo de página.
+  // Fluid: page-level only.
   display: { size: { min: 32, base: 25.744, vw: 1.739, max: 48 }, leading: 1.15, weight: 600, tracking: -0.02 },
   'title-1': { size: { min: 28, base: 24.864, vw: 0.87, max: 36 }, leading: 1.2, weight: 600, tracking: -0.02 },
   'title-2': { size: { min: 24, base: 21.648, vw: 0.652, max: 30 }, leading: 1.25, weight: 600, tracking: -0.02 },
-  // Fijos: de componente.
+  // Fixed: component-level.
   heading: { size: 20, leading: 1.3, weight: 600, tracking: -0.02 },
   subheading: { size: 18, leading: 1.4, weight: 500 },
   body: { size: 16, leading: 1.5, weight: 400 },
@@ -237,14 +248,16 @@ export const textStyles = {
   caption: { size: 12, leading: 1.33, weight: 500 },
 } as const satisfies Record<string, FixedTextStyle | FluidTextStyle>;
 
+/** Name of a type style (`.text-*` in the web version). */
 export type TextVariant = keyof typeof textStyles;
 
-/** `--text-code-size: 0.875em`: relativo al texto que lo rodea. */
+/** `--text-code-size: 0.875em`: relative to the surrounding text. */
 export const codeScale = 0.875;
 
-/** Solo separa secciones de página. */
+/** Only separates page sections. */
 export const spaceSection: Fluid = { min: 48, base: 29.216, vw: 5.217, max: 96 };
 
+/** Computes a fluid value for a screen width, clamped between its minimum and maximum. */
 export function resolveFluid(value: Fluid, viewportWidth: number): number {
   const fluid = value.base + (value.vw * viewportWidth) / 100;
   return Math.min(value.max, Math.max(value.min, fluid));

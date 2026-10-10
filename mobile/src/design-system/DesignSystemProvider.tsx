@@ -9,12 +9,12 @@ import { ThemeProvider } from './theme';
 import type { ColorScheme } from './tokens';
 
 interface DesignSystemProviderProps {
-  /** Fuerza un tema. Sin valor sigue el tema del sistema. */
+  /** Forces a theme. Without a value it follows the system theme. */
   scheme?: ColorScheme;
   children: ReactNode;
 }
 
-/** Carga las fuentes del sistema y provee el tema. Envuelve la app una sola vez. */
+/** Loads the design system fonts and provides the theme. Wrap the app once. */
 export function DesignSystemProvider({ scheme, children }: DesignSystemProviderProps) {
   const [loaded, error] = useFonts({
     Inter_400Regular,
@@ -23,7 +23,7 @@ export function DesignSystemProvider({ scheme, children }: DesignSystemProviderP
     JetBrainsMono_400Regular,
   });
 
-  // Si las fuentes fallan, se sigue con la fuente del sistema en lugar de bloquear la app.
+  // If the fonts fail to load, fall back to the system font instead of blocking the app.
   if (!loaded && !error) {
     return null;
   }

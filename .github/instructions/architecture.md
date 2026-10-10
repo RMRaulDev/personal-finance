@@ -31,7 +31,7 @@ SQLite Persistence
 * **Infrastructure / Persistence for Core**: COMPLETE
 * **Core Integration Boundary**: ESTABLISHED
 * **Entry / Delivery Layer (REST API / Controllers)**: FOUNDATION IN PLACE (Spring Boot bootstrap, configuration, error mapping, single-user mode, `Clock`, and strict JSON; endpoints exist for accounts, categories, operations (E3), obligations (E4: lifecycle, occurrences, and queries), and the dashboard (E5); the entry layer plan (E1-E5, E2b, E4c) is complete; outside Core milestone)
-* **iOS Application**: PENDING (outside Core milestone)
+* **Mobile Application (React Native + Expo, Android and iOS, `mobile/`)**: FOUNDATION IN PLACE (Expo app, design system, lint and formatting; no screens yet; outside Core milestone; see `mobile.md`)
 * **Complete MVP Product**: PENDING
 
 ### Future Architectural Layering
@@ -39,14 +39,14 @@ SQLite Persistence
 When the full product is integrated, the architecture will follow:
 
 ```text
-iOS Frontend
+Mobile Frontend (Android + iOS)
      ↓
 Entry / Delivery Layer
      ↓
        Core
 ```
 
-*The entry layer uses Spring Boot 4.1.1 (Spring MVC). No iOS architecture/framework has been selected yet. The Core boundary remains delivery-agnostic.*
+*The entry layer uses Spring Boot 4.1.1 (Spring MVC). The mobile client is a React Native + Expo app in TypeScript (`mobile/`, see `mobile.md`) that targets both Android and iOS. The Core boundary remains delivery-agnostic.*
 
 ---
 
