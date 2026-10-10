@@ -16,6 +16,7 @@ export {
   space,
   spaceSection,
   type ColorScheme,
+  type FontWeight,
   type Role,
   type TextVariant,
 } from './tokens';

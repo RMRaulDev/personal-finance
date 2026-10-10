@@ -25,31 +25,36 @@ const features = listFeatures();
 const featurePaths = features.map((feature) => `./src/features/${feature}`);
 
 // Every module that exposes a public index.ts. Code outside a module may only import that index.
-const modules = ['./src/design-system', './src/api', './src/lib', ...featurePaths];
-// Code that consumes modules: the routes, the root component, and the modules themselves.
-const consumers = ['./src/app', './App.tsx', ...modules];
+const modules = ['./src/design-system', './src/api', './src/lib', './src/shared', ...featurePaths];
+// Code that consumes modules: the routes and the modules themselves.
+const consumers = ['./src/app', ...modules];
 
 /**
  * Builds the zones of `import/no-restricted-paths` that enforce the architecture in
  * .github/instructions/mobile.md → Architecture. Dependencies point inward:
- * app → features → api / lib / design-system.
+ * app → features → shared → api / lib / design-system, and api → lib.
  */
 function architectureZones() {
   const zones = [
     {
       target: './src/design-system',
-      from: ['./src/app', './src/features', './src/api', './src/lib'],
-      message: 'design-system is self-contained: it imports nothing from app, features, api, or lib.',
+      from: ['./src/app', './src/features', './src/shared', './src/api', './src/lib'],
+      message: 'design-system is self-contained: it imports nothing from app, features, shared, api, or lib.',
     },
     {
       target: './src/lib',
-      from: ['./src/app', './src/features', './src/api', './src/design-system'],
-      message: 'lib holds pure helpers: it imports nothing from app, features, api, or design-system.',
+      from: ['./src/app', './src/features', './src/shared', './src/api', './src/design-system'],
+      message: 'lib holds pure helpers: it imports nothing from app, features, shared, api, or design-system.',
     },
     {
       target: './src/api',
-      from: ['./src/app', './src/features', './src/design-system'],
+      from: ['./src/app', './src/features', './src/shared', './src/design-system'],
       message: 'api knows nothing about the UI: it may only import lib.',
+    },
+    {
+      target: './src/shared',
+      from: ['./src/app', './src/features'],
+      message: 'shared is reused by every feature: it never imports features or routes.',
     },
     {
       target: './src/features',
@@ -58,14 +63,14 @@ function architectureZones() {
     },
   ];
 
-  // A feature never imports another feature. Shared code moves down to lib or api.
+  // A feature never imports another feature. Shared code moves down to shared, lib, or api.
   for (const feature of featurePaths) {
     const others = featurePaths.filter((other) => other !== feature);
     if (others.length > 0) {
       zones.push({
         target: feature,
         from: others,
-        message: 'A feature never imports another feature. Move the shared code to lib or api.',
+        message: 'A feature never imports another feature. Move the shared code to shared, lib, or api.',
       });
     }
   }

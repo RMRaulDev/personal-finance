@@ -1,7 +1,15 @@
 import { Text as RNText, useWindowDimensions, type TextProps as RNTextProps } from 'react-native';
 
 import { useTheme, type Theme } from './theme';
-import { codeScale, fontFamily, resolveFluid, textStyles, type Role, type TextVariant } from './tokens';
+import {
+  codeScale,
+  fontFamily,
+  resolveFluid,
+  textStyles,
+  type FontWeight,
+  type Role,
+  type TextVariant,
+} from './tokens';
 
 /** Text color: one of the `--text-*` tokens or a role's `--text-{role}`. */
 export type TextColor = 'primary' | 'secondary' | 'disabled' | Role;
@@ -25,10 +33,15 @@ export interface TextProps extends RNTextProps {
   color?: TextColor;
   /** Fixed-width digits for tables, metrics, and changing values. */
   tabular?: boolean;
+  /**
+   * Font weight (400, 500, or 600; never 700). Defaults to the variant's weight. Use it instead of
+   * setting `fontFamily` by hand, because in React Native each weight is a separate font family.
+   */
+  weight?: FontWeight;
 }
 
 /** Design system text: applies the font, size, line height, tracking, and color of a type style. */
-export function Text({ variant = 'body', color = 'primary', tabular, style, ...rest }: TextProps) {
+export function Text({ variant = 'body', color = 'primary', tabular, weight, style, ...rest }: TextProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const spec = textStyles[variant];
@@ -39,7 +52,7 @@ export function Text({ variant = 'body', color = 'primary', tabular, style, ...r
     <RNText
       style={[
         {
-          fontFamily: fontFamily.sans[spec.weight],
+          fontFamily: fontFamily.sans[weight ?? spec.weight],
           fontSize,
           lineHeight: fontSize * spec.leading,
           letterSpacing: tracking === undefined ? undefined : tracking * fontSize,

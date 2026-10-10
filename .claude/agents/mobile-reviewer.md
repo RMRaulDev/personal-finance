@@ -24,22 +24,27 @@ Read `.github/instructions/mobile.md`, `mobile/AGENTS.md`, and `.github/instruct
 ## Checklist
 
 1. **Correctness**: logic errors, unhandled states (loading, empty, error), stale closures or missing hook dependencies, effects without cleanup, crashes on Android or iOS only.
-2. **Architecture** (`mobile.md` → Architecture): code in the right layer; routes without logic; no feature-to-feature imports; imports through public `index.ts`; server data only through TanStack Query hooks; query keys from `api/`; mutations invalidate the affected queries, have `retry: 0`, and block re-submission while pending; no `eslint-disable` for `import/no-restricted-paths` or `import/no-cycle`.
-3. **TypeScript** (`mobile.md` → TypeScript): `any`, non-null assertions, unjustified `as` casts, naming, named exports, props interfaces.
-4. **Comments** (`mobile.md` → Comments): every exported and internal function, component, hook, and type has a JSDoc in English; props that need it are documented; inline comments explain *why*; no comment contradicts the code it describes. The linter only checks exports, so check the rest by reading.
-5. **Design system** (`mobile.md` → Design System): literal colors, sizes, radii, or spacing; `primitives` in UI code; branching on `scheme` for colors; more than one primary button per screen; cards with shadow; weight 700; color as the only signal; text or inputs below 16 px; fluid styles inside components; invented components or variants that the design system marks as pending.
-6. **Accessibility** (`mobile.md` → Accessibility): roles and labels on interactive elements, focus ring kept, `inactive` instead of hiding unavailable actions, field errors in `Field`'s `error`.
-7. **Expo and dependencies** (`mobile.md` → Dependencies, `mobile/AGENTS.md`): packages added without `npx expo install` (versions outside the SDK's range in `package.json`), unnecessary dependencies, libraries that break Expo Go, hand-edited `ios/` or `android/`.
-8. **Backend API** (`mobile.md` → Backend API): field names and shapes match `architecture.md`; money in integer cents; no business rules reimplemented in the app; errors shown through the design system.
-9. **Scope and agent boundaries**: the change stays minimal; no tests or test framework were added; `mobile/**` is changed only by `mobile-implementer`, and Markdown in `.github/`, `docs/`, `CLAUDE.md`, `.claude/agents/` only by `docs-maintainer`. Flag any change that mixes these without a reason.
-10. **Documentation**: does the change make any statement in `.github/instructions/mobile.md`, `CLAUDE.md`, or `.claude/agents/mobile-*.md` inaccurate (component lists, file paths, scripts, template names)?
-11. **Quality gate**: run `npm --prefix mobile run check` and report the result. If `node` or `npm` is not found, report that the gate could not run; do not mark the review as passed.
+2. **Architecture** (`mobile.md` → Architecture): code in the right layer; routes without logic; no feature-to-feature imports; imports through public `index.ts`; server data only through `api/` query options and mutation hooks; query keys and invalidation in `api/`, never in a feature; mutations have `retry: 0` and run through the shared mutation lock; no `eslint-disable` for `import/no-restricted-paths` or `import/no-cycle`.
+3. **Reuse and separation of concerns** (`mobile.md` → Where code goes):
+   * Duplication: logic, components, copy, or styles that repeat something already in `design-system/`, `shared/`, `lib/`, or `api/`, or that copy code from another feature. Name the existing piece to reuse.
+   * Misplaced generality: code inside a feature that another screen would clearly use (scaffolding, toasts, error copy, list rows, formatters, invalidation), which belongs in `shared/`, `lib/`, or `api/`.
+   * Mixed responsibilities: screens that compute data instead of composing, components that fetch or invalidate, `model.ts` or `lib/` code that depends on React.
+   * Premature abstraction: a shared piece with options or branches that no current or planned screen needs.
+4. **TypeScript** (`mobile.md` → TypeScript): `any`, non-null assertions, unjustified `as` casts, naming, named exports, props interfaces.
+5. **Comments** (`mobile.md` → Comments): every exported and internal function, component, hook, and type has a JSDoc in English; props that need it are documented; inline comments explain *why*; no comment contradicts the code it describes. The linter only checks exports, so check the rest by reading.
+6. **Design system** (`mobile.md` → Design System): literal colors, sizes, radii, or spacing; `primitives` in UI code; branching on `scheme` for colors; more than one primary button per screen; cards with shadow; weight 700; color as the only signal; text or inputs below 16 px; fluid styles inside components; invented components or variants that the design system marks as pending.
+7. **Accessibility** (`mobile.md` → Accessibility): roles and labels on interactive elements, focus ring kept, `inactive` instead of hiding unavailable actions, field errors in `Field`'s `error`.
+8. **Expo and dependencies** (`mobile.md` → Dependencies, `mobile/AGENTS.md`): packages added without `npx expo install` (versions outside the SDK's range in `package.json`), unnecessary dependencies, libraries that break Expo Go, hand-edited `ios/` or `android/`.
+9. **Backend API** (`mobile.md` → Backend API): field names and shapes match `architecture.md`; money in integer cents; no business rules reimplemented in the app; errors shown through the design system.
+10. **Scope and agent boundaries**: the change stays minimal; no tests or test framework were added; `mobile/**` is changed only by `mobile-implementer`, and Markdown in `.github/`, `docs/`, `CLAUDE.md`, `.claude/agents/` only by `docs-maintainer`. Flag any change that mixes these without a reason.
+11. **Documentation**: does the change make any statement in `.github/instructions/mobile.md`, `CLAUDE.md`, or `.claude/agents/mobile-*.md` inaccurate (component lists, file paths, scripts, template names)?
+12. **Quality gate**: run `npm --prefix mobile run check` and report the result. If `node` or `npm` is not found, report that the gate could not run; do not mark the review as passed.
 
 ## Output
 
 Group your findings by severity:
 * **Blocking**: bugs, broken design system rules, failing quality gate, missing comments on new code, or `mobile/` changed outside `mobile-implementer`'s step.
-* **Important**: convention violations, weak or outdated comments, accessibility gaps, outdated documentation.
+* **Important**: convention violations, duplicated or misplaced code (checklist 3), weak or outdated comments, accessibility gaps, outdated documentation.
 * **Minor**: small improvements backed by a guide.
 
 For each finding give: `file:line`, what is wrong, the rule it violates (guide and section), and a concrete fix. If there are no findings, say so explicitly and list what you checked.
