@@ -10,6 +10,7 @@ import com.rauldev.personalfinance.domain.Money;
 /**
  * A recent active (not cancelled) operation.
  *
+ * @param category the category of an income or expense, or {@code null} for a transfer or an operation without one
  * @param obligation the obligation whose occurrence this expense paid, or {@code null}
  */
 public record RecentActivityItem(
@@ -32,9 +33,6 @@ public record RecentActivityItem(
             case INCOME, EXPENSE -> {
                 if (account == null) {
                     throw new IllegalArgumentException("Income and expense operations require an account");
-                }
-                if (category == null) {
-                    throw new IllegalArgumentException("Income and expense operations require a category");
                 }
                 if (transfer != null) {
                     throw new IllegalArgumentException("Income and expense operations cannot include transfer details");

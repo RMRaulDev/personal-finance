@@ -40,7 +40,7 @@ Domain Service:
 - CommitmentCalculator
 
 Package-private helper:
-- OperationReferences (shared registration checks for Income, Expense, and Obligation)
+- OperationReferences (shared registration checks for Income, Expense, and Obligation: `validate` for account and category, `validateAccount` for an income or expense without a category)
 
 Domain Exceptions:
 - BusinessRuleViolationException
@@ -186,18 +186,18 @@ Structure:
 ```text
 Income
 ├── accountId: UUID
-├── categoryId: UUID
+├── categoryId: UUID | null   (categoryId() returns Optional<UUID>)
 └── status: OperationStatus
 ```
 
 ### Income Invariants & Rules
 
-* `accountId` and `categoryId` are required.
+* `accountId` is required. `categoryId` is optional: an income may be registered without a category (`Income.register` receives a `null` category). When it has one, the rules below on the category apply.
 * `category.type` must be `CategoryType.INCOME`.
 * `account.userId` and `category.userId` must match `userId`.
 * `account.status` must be `ACTIVE` when registering an income (`BusinessRuleViolationException`, `ACCOUNT_INACTIVE`, "Account must be active").
 * `category.status` must be `ACTIVE` when registering an income (`BusinessRuleViolationException`, `CATEGORY_INACTIVE`, "Category must be active").
-* Registration check order: required references, same user, category type (`IllegalArgumentException`), account active, category active. The shared checks live in the package-private `OperationReferences.validate`, also used by `Expense` and `Obligation`.
+* Registration check order with a category: required references, same user, category type (`IllegalArgumentException`), account active, category active. Without a category only the account checks run (account required, account active). The shared checks live in the package-private `OperationReferences.validate` (with a category) and `OperationReferences.validateAccount` (account only), also used by `Expense` and `Obligation`.
 * These checks apply to `Income.register` only. Loading a persisted income uses the constructor, so historical operations load even if their account or category was deactivated later.
 * `status` is `OperationStatus.ACTIVE` or `OperationStatus.CANCELLED`.
 * `Income` is cancellable via `cancel()`. `ensureCancellable()` throws `BusinessRuleViolationException` with `OPERATION_ALREADY_CANCELLED` if the income is already cancelled; `cancel()` calls it first.
@@ -213,19 +213,19 @@ Structure:
 ```text
 Expense
 ├── accountId: UUID
-├── categoryId: UUID
+├── categoryId: UUID | null   (categoryId() returns Optional<UUID>)
 └── status: OperationStatus
 ```
 
 ### Expense Invariants & Rules
 
-* `accountId` and `categoryId` are required.
+* `accountId` is required. `categoryId` is optional: an expense may be registered without a category (`Expense.register` receives a `null` category). When it has one, the rules below on the category apply.
 * `category.type` must be `CategoryType.EXPENSE`.
 * `account.userId` and `category.userId` must match `userId`.
 * `account.status` must be `ACTIVE` when registering an expense (`BusinessRuleViolationException`, `ACCOUNT_INACTIVE`, "Account must be active").
 * `category.status` must be `ACTIVE` when registering an expense (`BusinessRuleViolationException`, `CATEGORY_INACTIVE`, "Category must be active").
 * `account.balance` must be sufficient (`balance >= amount`) when registering an expense.
-* Registration check order: required references, same user, category type (`IllegalArgumentException`), account active, category active, then balance (both ACTIVE checks run before the balance check).
+* Registration check order with a category: required references, same user, category type (`IllegalArgumentException`), account active, category active, then balance (both ACTIVE checks run before the balance check). Without a category: account required, account active, then balance.
 * These checks apply to `Expense.register` only. Loading a persisted expense uses the constructor, so historical operations load even if their account or category was deactivated later.
 * `status` is `OperationStatus.ACTIVE` or `OperationStatus.CANCELLED`.
 * `Expense` is cancellable via `cancel()`. `ensureCancellable()` throws `BusinessRuleViolationException` with `OPERATION_ALREADY_CANCELLED` if the expense is already cancelled; `cancel()` calls it first.

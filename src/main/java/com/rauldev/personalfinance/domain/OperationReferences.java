@@ -4,7 +4,8 @@ import java.util.Objects;
 
 /**
  * Validates the account and category that a new income, expense or obligation will reference. Check order: required
- * references, same user, category type, account active, category active.
+ * references, same user, category type, account active, category active. An income or expense registered without a
+ * category only checks its account ({@link #validateAccount}).
  */
 final class OperationReferences {
 
@@ -20,11 +21,16 @@ final class OperationReferences {
         if (category.type() != expectedType) {
             throw new IllegalArgumentException(invalidTypeMessage);
         }
-        if (account.status() != AccountStatus.ACTIVE) {
-            throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_INACTIVE, "Account must be active");
-        }
+        validateAccount(account);
         if (category.status() != CategoryStatus.ACTIVE) {
             throw new BusinessRuleViolationException(BusinessRuleCode.CATEGORY_INACTIVE, "Category must be active");
+        }
+    }
+
+    static void validateAccount(Account account) {
+        Objects.requireNonNull(account, "Account cannot be null");
+        if (account.status() != AccountStatus.ACTIVE) {
+            throw new BusinessRuleViolationException(BusinessRuleCode.ACCOUNT_INACTIVE, "Account must be active");
         }
     }
 }

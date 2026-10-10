@@ -18,9 +18,10 @@ import com.rauldev.personalfinance.entry.web.common.TransferResponse;
 /**
  * A recent active (not cancelled) operation on the dashboard.
  *
- * <p>Incomes and expenses carry {@code account} and {@code category}; transfers carry
- * {@code transfer}. {@code obligation} is the obligation whose occurrence the expense paid, and is
- * {@code null} otherwise. Absent parts are serialized as {@code null}, never omitted.
+ * <p>Incomes and expenses carry {@code account} and {@code category} ({@code null} when the
+ * operation has no category); transfers carry {@code transfer}. {@code obligation} is the
+ * obligation whose occurrence the expense paid, and is {@code null} otherwise. Absent parts are
+ * serialized as {@code null}, never omitted.
  */
 public record RecentActivityItemResponse(
     UUID id,

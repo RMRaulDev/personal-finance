@@ -33,7 +33,7 @@ public final class JdbcExpenseOperationRepository implements ExpenseOperationRep
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, expense.id().toString());
             statement.setString(2, expense.accountId().toString());
-            statement.setString(3, expense.categoryId().toString());
+            statement.setString(3, expense.categoryId().map(UUID::toString).orElse(null));
             statement.setLong(4, toCents(expense.amount()));
             statement.setString(5, expense.operationDate().toString());
             statement.setString(6, expense.status().name());
@@ -152,7 +152,8 @@ public final class JdbcExpenseOperationRepository implements ExpenseOperationRep
             UUID id = UUID.fromString(resultSet.getString("id"));
             UUID userId = UUID.fromString(resultSet.getString("user_id"));
             UUID accountId = UUID.fromString(resultSet.getString("account_id"));
-            UUID categoryId = UUID.fromString(resultSet.getString("category_id"));
+            String categoryIdValue = resultSet.getString("category_id");
+            UUID categoryId = categoryIdValue == null ? null : UUID.fromString(categoryIdValue);
             Money amount = Money.ofCents(resultSet.getLong("amount"));
             LocalDate operationDate = LocalDate.parse(resultSet.getString("operation_date"));
 

@@ -174,8 +174,10 @@ class ReadModelValidationTest {
 
         assertThrows(IllegalArgumentException.class, () -> new FinancialOperationHistoryItem(
             UUID.randomUUID(), OperationType.INCOME, Money.of(BigDecimal.TEN), OPERATION_DATE, OperationStatus.ACTIVE, null, null, category, null));
-        assertThrows(IllegalArgumentException.class, () -> new FinancialOperationHistoryItem(
+        assertDoesNotThrow(() -> new FinancialOperationHistoryItem(
             UUID.randomUUID(), OperationType.EXPENSE, Money.of(BigDecimal.TEN), OPERATION_DATE, OperationStatus.ACTIVE, null, account, null, null));
+        assertDoesNotThrow(() -> new FinancialOperationHistoryItem(
+            UUID.randomUUID(), OperationType.INCOME, Money.of(BigDecimal.TEN), OPERATION_DATE, OperationStatus.ACTIVE, null, account, null, null));
         assertThrows(IllegalArgumentException.class, () -> new FinancialOperationHistoryItem(
             UUID.randomUUID(), OperationType.INCOME, Money.of(BigDecimal.TEN), OPERATION_DATE, OperationStatus.ACTIVE, null, account, category, transfer));
         assertThrows(IllegalArgumentException.class, () -> new FinancialOperationHistoryItem(
@@ -490,8 +492,7 @@ class ReadModelValidationTest {
         for (OperationType type : List.of(OperationType.INCOME, OperationType.EXPENSE)) {
             assertThrows(IllegalArgumentException.class,
                 () -> recent(type, null, categorySummary(), null, null));
-            assertThrows(IllegalArgumentException.class,
-                () -> recent(type, accountSummary(), null, null, null));
+            assertDoesNotThrow(() -> recent(type, accountSummary(), null, null, null));
             assertThrows(IllegalArgumentException.class,
                 () -> recent(type, accountSummary(), categorySummary(), transferDetails(), null));
         }

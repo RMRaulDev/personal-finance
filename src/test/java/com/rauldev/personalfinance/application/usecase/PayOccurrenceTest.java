@@ -136,7 +136,7 @@ class PayOccurrenceTest {
         assertEquals(Money.ofCents(10000), expense.amount());
         assertEquals(TODAY, expense.operationDate());
         assertEquals(account.id(), expense.accountId());
-        assertEquals(category.id(), expense.categoryId());
+        assertEquals(Optional.of(category.id()), expense.categoryId());
         assertEquals(userId, expense.userId());
         assertEquals(Money.ofCents(40000), account.balance());
         assertEquals(1, accountRepository.updated.size());
@@ -224,7 +224,7 @@ class PayOccurrenceTest {
 
         Expense expense = expenseRepository.created.get(0);
         assertEquals(alternative.id(), expense.accountId());
-        assertEquals(category.id(), expense.categoryId());
+        assertEquals(Optional.of(category.id()), expense.categoryId());
         assertEquals(Money.ofCents(40000), alternative.balance());
         assertEquals(Money.ofCents(50000), account.balance());
     }
@@ -237,7 +237,7 @@ class PayOccurrenceTest {
 
         Expense expense = expenseRepository.created.get(0);
         assertEquals(account.id(), expense.accountId());
-        assertEquals(alternative.id(), expense.categoryId());
+        assertEquals(Optional.of(alternative.id()), expense.categoryId());
     }
 
     @Test
@@ -249,7 +249,7 @@ class PayOccurrenceTest {
 
         Expense expense = expenseRepository.created.get(0);
         assertEquals(alternativeAccount.id(), expense.accountId());
-        assertEquals(alternativeCategory.id(), expense.categoryId());
+        assertEquals(Optional.of(alternativeCategory.id()), expense.categoryId());
     }
 
     @Test

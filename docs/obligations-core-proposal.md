@@ -48,7 +48,7 @@ Decisiones al implementar los casos de uso; prevalecen sobre el texto original d
    * **Orden de comprobaciones** (difiere de los pasos de la sección 4): comando → `operationDate` posterior a hoy (`IllegalArgumentException`, "Operation date cannot be after today"; se comprueba primero) → obligación (404) → `OccurrenceResolution.validateNewResolution` (`OBLIGATION_ARCHIVED`, luego `OCCURRENCE_NOT_SCHEDULED`; se permiten fechas futuras del calendario) → resolución existente (`OCCURRENCE_ALREADY_RESOLVED`) → `ExpenseRegistration` con los valores por defecto (cuenta, categoría y monto de la obligación, hoy) o las alternativas indicadas (cuenta 404, categoría 404, tipo de categoría `IllegalArgumentException`, `ACCOUNT_INACTIVE`, `CATEGORY_INACTIVE`, `INSUFFICIENT_BALANCE`) → crear la resolución `PAID` con el id del gasto.
    * **`OccurrenceResolution.validateNewResolution(Obligation, LocalDate)` es público y estático**: `PayOccurrence` lo usa antes de que exista el gasto; `paid(...)` y `skipped(...)` lo repiten al crear.
    * **Carrera**: una resolución concurrente la traduce el adaptador a `OCCURRENCE_ALREADY_RESOLVED` y la transacción completa (gasto y saldo) se revierte. Se registra el monto real.
-   * **`ExpenseRegistration(AccountRepository, CategoryRepository, ExpenseOperationRepository)`** expone `Expense register(RegisterExpenseCommand)`: sin transacción propia; carga la cuenta y luego la categoría por usuario (`ResourceNotFoundException`), llama `Expense.register`, debita la cuenta y guarda el gasto y luego la cuenta. `RegisterExpense` conserva su constructor público, construye `ExpenseRegistration` internamente y ejecuta `transactionManager.execute(() -> expenseRegistration.register(command).id())` con el mismo comportamiento.
+   * **`ExpenseRegistration(AccountRepository, CategoryRepository, ExpenseOperationRepository)`** expone `Expense register(RegisterExpenseCommand)`: sin transacción propia; carga la cuenta y luego la categoría por usuario (`ResourceNotFoundException`; la categoría solo se carga si el comando trae `categoryId`, que es opcional para `RegisterExpense` y siempre está presente en `PayOccurrence`), llama `Expense.register`, debita la cuenta y guarda el gasto y luego la cuenta. `RegisterExpense` conserva su constructor público, construye `ExpenseRegistration` internamente y ejecuta `transactionManager.execute(() -> expenseRegistration.register(command).id())` con el mismo comportamiento.
    * **`CancelOperation`** recibe `(AccountRepository, IncomeOperationRepository, ExpenseOperationRepository, ReversalRepository, OccurrenceResolutionRepository, TransactionManager, Clock)` y usa `Instant.now(clock)`, lo que **resuelve el conflicto C1**. Al cancelar un gasto, tras el `Reversal` y las actualizaciones y en la misma transacción, ejecuta `findByExpenseId(expense.id()).ifPresent(r -> delete(r.id()))`. El gasto se carga con `findByIdAndUserId` antes de la búsqueda de la resolución (que no filtra por usuario), así que la propiedad se comprueba primero. Los ingresos nunca tocan resoluciones.
    * **C6 sigue abierto**: `RegisterExpense` acepta fechas de operación futuras y `PayOccurrence` las rechaza.
 
@@ -92,7 +92,7 @@ El filtrado de estado ocurre en SQL solo para obligaciones `ACTIVE` y operacione
 | `AttentionItem.PaymentBlocked` | `obligation`, `account`, `nearestDueDate`, `committed`, `accountInactive`, `categoryInactive` (al menos una verdadera). |
 | `AttentionItem.AccountShortfall` | `account`, `shortfall`, `nearestDueDate`. |
 | `UpcomingCommitment` | `obligation`, `dueDate`, `Money amount` (el de la obligación), `account`, `boolean paymentBlocked`. |
-| `RecentActivityItem` | `operationId`, `operationType`, `amount`, `operationDate`, `account`, `category`, `transfer`, `obligation` (opcional). `INCOME` y `EXPENSE` requieren cuenta y categoría y no llevan `transfer`; `TRANSFER` requiere `transfer` y no lleva cuenta ni categoría; `obligation` solo en `EXPENSE` ("Only expense operations can reference an obligation"). Los mensajes reflejan los de `FinancialOperationHistoryItem`. Sin campo de estado (las canceladas se excluyen). |
+| `RecentActivityItem` | `operationId`, `operationType`, `amount`, `operationDate`, `account`, `category`, `transfer`, `obligation` (opcional). `INCOME` y `EXPENSE` requieren cuenta (la categoría es opcional: es nula si la operación se registró sin ella) y no llevan `transfer`; `TRANSFER` requiere `transfer` y no lleva cuenta ni categoría; `obligation` solo en `EXPENSE` ("Only expense operations can reference an obligation"). Los mensajes reflejan los de `FinancialOperationHistoryItem`. Sin campo de estado (las canceladas se excluyen). |
 
 Todos los campos de los registros de attention son no nulos y no se validan positividades de montos. Se reutilizan `AccountSummary`, `CategorySummary`, `TransferDetails` y `OperationType`.
 
@@ -360,7 +360,7 @@ Si otra petición resolvió la misma fecha entre el paso 4 y el 6, el `UNIQUE (o
 
 **Registro de gasto compartido**: se elige **extraer** `ExpenseRegistration`, un componente de aplicación sin transacción propia que:
 
-* carga cuenta y categoría por usuario;
+* carga cuenta y categoría por usuario (la categoría solo si el comando la trae: los gastos pueden registrarse sin categoría, los pagos de obligaciones no);
 * llama `Expense.register`;
 * debita la cuenta;
 * guarda el gasto y la cuenta.
@@ -454,7 +454,7 @@ Razón del orden:
 * **Domain**:
   * `Obligation`, `ObligationStatus`, `Recurrence`, `Frequency`, `OccurrenceResolution`, `ResolutionStatus`.
   * `CommitmentCalculator`: puro; recibe snapshots (`ObligationSnapshot`, `ResolutionSnapshot`, `AccountSnapshot`, `CategorySnapshot`), `hoy` y, por construcción, el horizonte; devuelve `CommitmentSummary` (montos, `ObligationCommitment`, `AccountCommitment` y attention).
-  * `OperationReferences` (paquete privado): validación compartida de `Income`, `Expense` y `Obligation`.
+  * `OperationReferences` (paquete privado): validación compartida de `Income`, `Expense` y `Obligation` (`validate`), más `validateAccount` para ingresos y gastos sin categoría.
   * `Money.multiply(long)`.
   * Los nuevos códigos.
   * Ninguna clase de dominio llama a `now()`: `hoy` entra como parámetro.

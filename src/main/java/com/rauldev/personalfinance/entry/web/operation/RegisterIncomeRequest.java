@@ -10,7 +10,8 @@ import com.rauldev.personalfinance.entry.web.common.RequiredFields;
 /**
  * Body of {@code POST /api/v1/operations/incomes}. Fields are wrapper types so that a missing
  * JSON field arrives as {@code null} and answers 400 instead of defaulting to {@code 0}.
- * {@code operationDate} is an ISO-8601 date ({@code "2026-10-04"}).
+ * {@code operationDate} is an ISO-8601 date ({@code "2026-10-04"}). {@code categoryId} is optional: absent or
+ * {@code null} registers the operation without a category.
  */
 public record RegisterIncomeRequest(
     UUID accountId,
@@ -20,13 +21,13 @@ public record RegisterIncomeRequest(
 ) {
 
     /**
-     * @throws IllegalArgumentException if a field is missing or {@code amountCents} is negative
+     * @throws IllegalArgumentException if a required field is missing or {@code amountCents} is negative
      */
     public RegisterIncomeCommand toCommand(UUID userId) {
         return new RegisterIncomeCommand(
             userId,
             RequiredFields.require(accountId, "accountId"),
-            RequiredFields.require(categoryId, "categoryId"),
+            categoryId,
             MoneyCents.toMoney(amountCents, "amountCents"),
             RequiredFields.require(operationDate, "operationDate"));
     }

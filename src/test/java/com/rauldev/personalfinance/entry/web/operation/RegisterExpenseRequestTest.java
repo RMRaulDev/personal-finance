@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -35,8 +36,10 @@ class RegisterExpenseRequestTest {
     }
 
     @Test
-    void rejectsMissingCategoryIdNamingIt() {
-        assertMissing("categoryId", () -> new RegisterExpenseRequest(ACCOUNT_ID, null, 1L, DATE).toCommand(USER_ID));
+    void mapsMissingCategoryIdToNullCategoryInCommand() {
+        RegisterExpenseCommand command = new RegisterExpenseRequest(ACCOUNT_ID, null, 1L, DATE).toCommand(USER_ID);
+
+        assertNull(command.categoryId());
     }
 
     @Test

@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -68,7 +69,7 @@ class RegisterIncomeTest {
         assertEquals(1, accountRepository.updateCalls);
         assertNotNull(incomeRepository.createdIncome);
         assertEquals(accountId, incomeRepository.createdIncome.accountId());
-        assertEquals(categoryId, incomeRepository.createdIncome.categoryId());
+        assertEquals(Optional.of(categoryId), incomeRepository.createdIncome.categoryId());
         assertEquals(amount, incomeRepository.createdIncome.amount());
         assertEquals(Money.ofCents(5000), accountRepository.updatedAccount.balance());
         assertEquals(result, incomeRepository.createdIncome.id());
@@ -332,13 +333,12 @@ class RegisterIncomeTest {
     }
 
     @Test
-    void command_shouldRejectNullReferences() {
+    void command_shouldRejectNullReferencesExceptCategory() {
         assertThrows(NullPointerException.class,
             () -> new RegisterIncomeCommand(null, UUID.randomUUID(), UUID.randomUUID(), Money.ofCents(100), OPERATION_DATE));
         assertThrows(NullPointerException.class,
             () -> new RegisterIncomeCommand(UUID.randomUUID(), null, UUID.randomUUID(), Money.ofCents(100), OPERATION_DATE));
-        assertThrows(NullPointerException.class,
-            () -> new RegisterIncomeCommand(UUID.randomUUID(), UUID.randomUUID(), null, Money.ofCents(100), OPERATION_DATE));
+        assertNull(new RegisterIncomeCommand(UUID.randomUUID(), UUID.randomUUID(), null, Money.ofCents(100), OPERATION_DATE).categoryId());
         assertThrows(NullPointerException.class,
             () -> new RegisterIncomeCommand(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null, OPERATION_DATE));
         assertThrows(NullPointerException.class,

@@ -40,7 +40,7 @@ Read model `Dashboard`:
 * `shortfall = max(0, committedAmount - balance)`.
 * Horizonte inicial de 14 días. Las fechas las controla el servidor.
 * Las transferencias no cuentan ni como ingreso ni como gasto.
-* Todo gasto tiene categoría (`expense_operations.category_id` es `NOT NULL`), así que el desglose por categoría no necesita un grupo "Sin categoría".
+* Los ingresos y gastos pueden registrarse sin categoría (`income_operations.category_id` y `expense_operations.category_id` admiten `NULL`; ver migración `003-optional-operation-category.sql`). Por eso los ítems de `recent` pueden traer `category` nulo, y el desglose `spending.byCategory` de Review necesitará un grupo "Sin categoría" para los gastos sin categoría. Decisión pendiente para el diseño de Review: si ese grupo se muestra siempre o solo cuando tiene gastos, y cómo cuentan los ingresos sin categoría en el resumen.
 
 ## Prerrequisitos y estado
 

@@ -31,7 +31,8 @@ public final class ExpenseRegistration {
     }
 
     /**
-     * Loads the account and category by user, registers the expense, debits the account, and saves both.
+     * Loads the account and, when the command has one, the category by user, registers the expense, debits the
+     * account, and saves both.
      *
      * @return the registered expense
      */
@@ -42,9 +43,7 @@ public final class ExpenseRegistration {
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Account not found for user: " + command.accountId()));
 
-        Category category = categoryRepository.findByIdAndUserId(command.categoryId(), command.userId())
-            .orElseThrow(() -> new ResourceNotFoundException(
-                "Category not found for user: " + command.categoryId()));
+        Category category = command.categoryId() == null ? null : findCategory(command);
 
         Expense expense = Expense.register(
             account,
@@ -58,5 +57,11 @@ public final class ExpenseRegistration {
         accountRepository.update(account);
 
         return expense;
+    }
+
+    private Category findCategory(RegisterExpenseCommand command) {
+        return categoryRepository.findByIdAndUserId(command.categoryId(), command.userId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Category not found for user: " + command.categoryId()));
     }
 }

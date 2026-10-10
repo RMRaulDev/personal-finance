@@ -90,7 +90,7 @@ class JdbcExpenseOperationRepositoryTest {
         assertEquals(expenseId, found.get().id());
         assertEquals(USER_ID_A, found.get().userId());
         assertEquals(ACCOUNT_ID_A, found.get().accountId());
-        assertEquals(CATEGORY_ID_A, found.get().categoryId());
+        assertEquals(Optional.of(CATEGORY_ID_A), found.get().categoryId());
         assertEquals(amount, found.get().amount());
         assertEquals(date, found.get().operationDate());
         assertEquals(OperationStatus.ACTIVE, found.get().status());
@@ -163,7 +163,7 @@ class JdbcExpenseOperationRepositoryTest {
         assertEquals(expenseId, found.id());
         assertEquals(USER_ID_A, found.userId());
         assertEquals(ACCOUNT_ID_A, found.accountId());
-        assertEquals(CATEGORY_ID_A, found.categoryId());
+        assertEquals(Optional.of(CATEGORY_ID_A), found.categoryId());
         assertEquals(amount, found.amount());
         assertEquals(date, found.operationDate());
     }
@@ -202,7 +202,7 @@ class JdbcExpenseOperationRepositoryTest {
         assertEquals(operationId, found.id());
         assertEquals(OperationStatus.ACTIVE, found.status());
         assertEquals(ACCOUNT_ID_A, found.accountId());
-        assertEquals(CATEGORY_ID_A, found.categoryId());
+        assertEquals(Optional.of(CATEGORY_ID_A), found.categoryId());
     }
 
     @Test

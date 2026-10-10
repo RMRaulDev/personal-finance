@@ -14,7 +14,7 @@ Read the other guides in `.github/instructions/` (`java.md`, `domain.md`, `appli
 * Build and run all tests: `mvn test`
 * Run a single test class: `mvn test -Dtest=RegisterExpenseTest`
 * Run the app: `PERSONAL_FINANCE_SQLITE_URL=jdbc:sqlite:/path/to/db PERSONAL_FINANCE_SINGLE_USER_ID=<uuid> mvn spring-boot:run` (the canonical `PERSONALFINANCE_SQLITE_URL` and `--personal-finance.sqlite.url=...` also work; `PERSONAL_FINANCE_TIME_ZONE` optionally overrides the default `America/Mexico_City`). Both the SQLite URL and the single user id are required. The database must be initialized first from `src/main/resources/db/schema.sql`; the app does not create the schema or the user.
-  * A fresh database is initialized from `schema.sql`. An existing database must first apply, in order and by hand with the app stopped, the scripts from `src/main/resources/db/migrations/` it is missing (each runs as a single transaction).
+  * A fresh database is initialized from `schema.sql`. An existing database must first apply, in order and by hand with the app stopped, the scripts from `src/main/resources/db/migrations/` it is missing. Stop the app and copy the database file first, then run each script with `sqlite3 -bail /path/to/db < src/main/resources/db/migrations/<script>.sql`: each script is a single transaction, and `-bail` makes the first failing statement stop it and roll back (without it, `003`, which rebuilds tables, would continue with `DROP TABLE` and `COMMIT` after a failure).
   * Provisioning the single user (once per database):
     1. `sqlite3 /path/to/db < src/main/resources/db/schema.sql`
     2. `sqlite3 /path/to/db "INSERT INTO users (id) VALUES (lower('<uuid>'));"` (the id must be stored lowercase)

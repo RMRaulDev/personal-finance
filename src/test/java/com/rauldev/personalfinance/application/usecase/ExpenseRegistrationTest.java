@@ -58,7 +58,7 @@ class ExpenseRegistrationTest {
 
         assertEquals(userId, expense.userId());
         assertEquals(account.id(), expense.accountId());
-        assertEquals(category.id(), expense.categoryId());
+        assertEquals(Optional.of(category.id()), expense.categoryId());
         assertEquals(Money.ofCents(4000), expense.amount());
         assertEquals(OPERATION_DATE, expense.operationDate());
         assertEquals(1, accountRepository.findCalls);

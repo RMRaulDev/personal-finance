@@ -116,6 +116,8 @@ LIMIT :pageSize OFFSET :offset
 
 `Transfer` no tiene categoría. Solo participan `income_operations` y `expense_operations`.
 
+`category_id` admite `NULL` en ambas tablas (ingresos y gastos sin categoría), así que el filtro `= :categoryId` nunca coincide con esas operaciones. Las consultas de esta página solo seleccionan `category_id`; las implementaciones JDBC que además muestran el nombre de la categoría la unen con `LEFT JOIN categories` para no descartar las operaciones sin categoría.
+
 ```sql
 SELECT i.id, 'INCOME' AS operation_type,
        i.account_id, i.category_id,

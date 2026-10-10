@@ -25,6 +25,14 @@ import com.rauldev.personalfinance.domain.Money;
 import com.rauldev.personalfinance.domain.OperationStatus;
 import com.rauldev.personalfinance.infrastructure.transaction.TransactionConnectionHolder;
 
+/**
+ * Reads the operations history and the details of one operation.
+ *
+ * <p>The category of an income or expense is optional, so it is joined with {@code LEFT JOIN}: an operation without
+ * one has a {@code NULL} category and is never dropped. The category id is read from the operation row, so a
+ * reference to a missing category leaves the name {@code NULL} and the row fails as corrupted data instead of
+ * looking uncategorized.
+ */
 public final class JdbcFinancialOperationQueryAdapter implements FinancialOperationQueryPort {
     private final SQLiteConnectionProvider connectionProvider;
     private final TransactionConnectionHolder connectionHolder;
@@ -87,11 +95,11 @@ public final class JdbcFinancialOperationQueryAdapter implements FinancialOperat
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT io.id AS op_id, 'INCOME' AS op_type, io.amount AS amount, io.operation_date AS operation_date, ")
               .append("io.status AS status, r.cancelled_at AS cancelled_at, ")
-              .append("a.id AS account_id, a.name AS account_name, c.id AS category_id, c.name AS category_name, ")
+              .append("a.id AS account_id, a.name AS account_name, io.category_id AS category_id, c.name AS category_name, ")
               .append("NULL AS source_account_id, NULL AS source_account_name, NULL AS target_account_id, NULL AS target_account_name ")
               .append("FROM income_operations io ")
               .append("JOIN accounts a ON a.id = io.account_id ")
-              .append("JOIN categories c ON c.id = io.category_id ")
+              .append("LEFT JOIN categories c ON c.id = io.category_id ")
               .append("LEFT JOIN reversals r ON r.original_operation_id = io.id ")
               .append("WHERE a.user_id = ? ");
             params.add(criteria.userId().toString());
@@ -119,11 +127,11 @@ public final class JdbcFinancialOperationQueryAdapter implements FinancialOperat
             StringBuilder sb = new StringBuilder();
             sb.append("SELECT eo.id AS op_id, 'EXPENSE' AS op_type, eo.amount AS amount, eo.operation_date AS operation_date, ")
               .append("eo.status AS status, r.cancelled_at AS cancelled_at, ")
-              .append("a.id AS account_id, a.name AS account_name, c.id AS category_id, c.name AS category_name, ")
+              .append("a.id AS account_id, a.name AS account_name, eo.category_id AS category_id, c.name AS category_name, ")
               .append("NULL AS source_account_id, NULL AS source_account_name, NULL AS target_account_id, NULL AS target_account_name ")
               .append("FROM expense_operations eo ")
               .append("JOIN accounts a ON a.id = eo.account_id ")
-              .append("JOIN categories c ON c.id = eo.category_id ")
+              .append("LEFT JOIN categories c ON c.id = eo.category_id ")
               .append("LEFT JOIN reversals r ON r.original_operation_id = eo.id ")
               .append("WHERE a.user_id = ? ");
             params.add(criteria.userId().toString());
@@ -215,21 +223,21 @@ public final class JdbcFinancialOperationQueryAdapter implements FinancialOperat
             + "FROM ("
             + "SELECT io.id AS op_id, 'INCOME' AS op_type, io.amount AS amount, io.operation_date AS operation_date, "
             + "io.status AS status, r.cancelled_at AS cancelled_at, "
-            + "a.id AS account_id, a.name AS account_name, c.id AS category_id, c.name AS category_name, "
+            + "a.id AS account_id, a.name AS account_name, io.category_id AS category_id, c.name AS category_name, "
             + "NULL AS source_account_id, NULL AS source_account_name, NULL AS target_account_id, NULL AS target_account_name "
             + "FROM income_operations io "
             + "JOIN accounts a ON a.id = io.account_id "
-            + "JOIN categories c ON c.id = io.category_id "
+            + "LEFT JOIN categories c ON c.id = io.category_id "
             + "LEFT JOIN reversals r ON r.original_operation_id = io.id "
             + "WHERE io.id = ? AND a.user_id = ? "
             + "UNION ALL "
             + "SELECT eo.id AS op_id, 'EXPENSE' AS op_type, eo.amount AS amount, eo.operation_date AS operation_date, "
             + "eo.status AS status, r.cancelled_at AS cancelled_at, "
-            + "a.id AS account_id, a.name AS account_name, c.id AS category_id, c.name AS category_name, "
+            + "a.id AS account_id, a.name AS account_name, eo.category_id AS category_id, c.name AS category_name, "
             + "NULL AS source_account_id, NULL AS source_account_name, NULL AS target_account_id, NULL AS target_account_name "
             + "FROM expense_operations eo "
             + "JOIN accounts a ON a.id = eo.account_id "
-            + "JOIN categories c ON c.id = eo.category_id "
+            + "LEFT JOIN categories c ON c.id = eo.category_id "
             + "LEFT JOIN reversals r ON r.original_operation_id = eo.id "
             + "WHERE eo.id = ? AND a.user_id = ? "
             + "UNION ALL "
