@@ -1,7 +1,9 @@
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { borderWidth, Button, space, useTheme } from '../../../../design-system';
+import { Button, space, useThemedStyles } from '../../../../design-system';
+
+import { createActionBarStyles } from './ActionBar.styles';
 
 /** Props of `ActionBar`. */
 export interface ActionBarProps {
@@ -16,28 +18,16 @@ export interface ActionBarProps {
  * the transfer screen has a design (the design itself hides it with a single account).
  */
 export function ActionBar({ onIncome, onExpense }: ActionBarProps) {
-  const { colors } = useTheme();
+  const styles = useThemedStyles(createActionBarStyles);
   const insets = useSafeAreaInsets();
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space[2],
-        paddingTop: space[3],
-        paddingHorizontal: space[4],
-        paddingBottom: space[8] + insets.bottom,
-        backgroundColor: colors.surface.raised,
-        borderTopWidth: borderWidth.hairline,
-        borderTopColor: colors.border.subtle,
-      }}
-    >
+    <View style={[styles.bar, { paddingBottom: space[8] + insets.bottom }]}>
       <Button variant="ghost" accessibilityLabel="Registrar ingreso" onPress={onIncome}>
         Ingreso
       </Button>
       {/* The primary action takes the rest of the row. */}
-      <View style={{ flex: 1 }}>
+      <View style={styles.primarySlot}>
         <Button variant="primary" size="lg" fullWidth accessibilityLabel="Registrar gasto" onPress={onExpense}>
           + Gasto
         </Button>

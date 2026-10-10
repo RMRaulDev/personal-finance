@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
 
-import { useTheme } from '../../theme/ThemeProvider';
-import { radius, space } from '../../tokens/colors';
+import { useThemedStyles } from '../../theme';
+
+import { BAR_WIDTH, createActivityBarStyles } from './ActivityBar.styles';
 
 /** `ActivityBar` props. */
 export interface ActivityBarProps {
@@ -10,10 +11,6 @@ export interface ActivityBarProps {
   accessibilityLabel: string;
 }
 
-/** Track width, from the component proposal. */
-const TRACK_WIDTH = 160;
-/** Bar width: 40% of the track. */
-const BAR_WIDTH = TRACK_WIDTH * 0.4;
 /** One sweep of the bar, in milliseconds. */
 const CYCLE_MS = 1400;
 /** Start of the sweep, as a multiple of the bar's width (−110%): fully left of the track. */
@@ -53,7 +50,7 @@ function useReduceMotion(): boolean {
  * the "Onboarding v1" screen design, pending adoption in the Lucas DS source project.
  */
 export function ActivityBar({ accessibilityLabel }: ActivityBarProps) {
-  const { colors } = useTheme();
+  const styles = useThemedStyles(createActivityBarStyles);
   const reduceMotion = useReduceMotion();
   // State, not a ref: the value is created once and read while rendering (for `interpolate`).
   const [progress] = useState(() => new Animated.Value(0));
@@ -81,26 +78,9 @@ export function ActivityBar({ accessibilityLabel }: ActivityBarProps) {
     : progress.interpolate({ inputRange: [0, 1], outputRange: [SWEEP_FROM * BAR_WIDTH, SWEEP_TO * BAR_WIDTH] });
 
   return (
-    <View
-      accessibilityRole="progressbar"
-      accessibilityLabel={accessibilityLabel}
-      style={{
-        width: TRACK_WIDTH,
-        height: space[1],
-        borderRadius: radius.full,
-        backgroundColor: colors.border.subtle,
-        overflow: 'hidden',
-      }}
-    >
-      <Animated.View
-        style={{
-          width: BAR_WIDTH,
-          height: '100%',
-          borderRadius: radius.full,
-          backgroundColor: colors.role.accent.fill,
-          transform: [{ translateX }],
-        }}
-      />
+    <View accessibilityRole="progressbar" accessibilityLabel={accessibilityLabel} style={styles.track}>
+      {/* The sweep is animated, so its transform is combined with the static bar style. */}
+      <Animated.View style={[styles.bar, { transform: [{ translateX }] }]} />
     </View>
   );
 }

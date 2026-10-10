@@ -1,6 +1,7 @@
-import { Button, Stack, Text } from '../../../design-system';
+import { Button, Stack, Text, useThemedStyles } from '../../../design-system';
 
 import { CenteredState } from './CenteredState';
+import { createScreenErrorStyles } from './ScreenError.styles';
 
 /** Props of `ScreenError`. */
 export interface ScreenErrorProps {
@@ -15,10 +16,12 @@ export interface ScreenErrorProps {
  * button keeps the default secondary variant, so the screen's single primary action stays free.
  */
 export function ScreenError({ message, onRetry }: ScreenErrorProps) {
+  const styles = useThemedStyles(createScreenErrorStyles);
+
   return (
     <CenteredState>
-      <Stack style={{ alignItems: 'center' }}>
-        <Text color="secondary" style={{ textAlign: 'center' }}>
+      <Stack style={styles.content}>
+        <Text color="secondary" style={styles.message}>
           {message}
         </Text>
         <Button onPress={onRetry}>Reintentar</Button>

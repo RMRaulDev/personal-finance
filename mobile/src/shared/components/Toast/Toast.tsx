@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { borderWidth, Button, control, radius, space, Text, useTheme } from '../../../design-system';
+import { Button, space, Text, useThemedStyles } from '../../../design-system';
 
+import { createToastStyles } from './Toast.styles';
 import type { ToastMessage } from './useToast';
 
 /** Props of `Toast`. */
@@ -21,8 +22,7 @@ export interface ToastProps {
 
 /** Floating message at the bottom of the screen, with an optional action such as "Deshacer". */
 export function Toast({ toast, onDismiss, bottom }: ToastProps) {
-  const theme = useTheme();
-  const { colors } = theme;
+  const styles = useThemedStyles(createToastStyles);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -35,29 +35,8 @@ export function Toast({ toast, onDismiss, bottom }: ToastProps) {
   }, [toast]);
 
   return (
-    <View
-      accessibilityLiveRegion="polite"
-      style={{
-        position: 'absolute',
-        left: space[4],
-        right: space[4],
-        bottom: bottom ?? space[8] + insets.bottom,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space[3],
-        minHeight: control.lg,
-        paddingVertical: space[2],
-        paddingRight: space[2],
-        paddingLeft: space[4],
-        borderRadius: radius.lg,
-        borderWidth: borderWidth.hairline,
-        borderColor: colors.border.default,
-        backgroundColor: colors.surface.overlay,
-        // It floats over the content, so it is one of the few elements allowed a shadow.
-        boxShadow: theme.shadows.md,
-      }}
-    >
-      <Text variant="body-sm" style={{ flex: 1 }}>
+    <View accessibilityLiveRegion="polite" style={[styles.toast, { bottom: bottom ?? space[8] + insets.bottom }]}>
+      <Text variant="body-sm" style={styles.text}>
         {toast.text}
       </Text>
       {toast.action && (

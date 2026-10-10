@@ -2,8 +2,10 @@ import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, control, space, Text } from '../../../../design-system';
+import { Button, space, Text, useThemedStyles } from '../../../../design-system';
 import { useKeyboardVisible } from '../../../../shared';
+
+import { createOnboardingStepStyles } from './OnboardingStep.styles';
 
 /** Props of `OnboardingStep`. */
 export interface OnboardingStepProps {
@@ -30,6 +32,7 @@ export interface OnboardingStepProps {
  * field in a scrolling body, and the step's button pinned at the bottom (above the keyboard).
  */
 export function OnboardingStep({ step, onBack, title, text, children, action, footer }: OnboardingStepProps) {
+  const styles = useThemedStyles(createOnboardingStepStyles);
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
   const relaxed = footer === 'relaxed';
@@ -38,32 +41,20 @@ export function OnboardingStep({ step, onBack, title, text, children, action, fo
 
   return (
     <>
-      <View
-        style={{
-          height: control.lg,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: space[3],
-        }}
-      >
-        <View style={{ flexDirection: 'row' }}>
+      <View style={styles.header}>
+        <View style={styles.backSlot}>
           {onBack && (
             <Button variant="ghost" onPress={onBack} accessibilityLabel="Atrás">
               ‹ Atrás
             </Button>
           )}
         </View>
-        <Text variant="body-sm" color="secondary" style={{ paddingHorizontal: space[2] }}>
+        <Text variant="body-sm" color="secondary" style={styles.stepLabel}>
           {`Paso ${step} de 2`}
         </Text>
       </View>
-      <ScrollView
-        style={{ flex: 1 }}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingVertical: space[4], paddingHorizontal: space[5], gap: space[8] }}
-      >
-        <View style={{ gap: space[3] }}>
+      <ScrollView style={styles.body} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.bodyContent}>
+        <View style={styles.intro}>
           <Text variant="title-2" accessibilityRole="header">
             {title}
           </Text>
@@ -72,11 +63,11 @@ export function OnboardingStep({ step, onBack, title, text, children, action, fo
         {children}
       </ScrollView>
       <View
-        style={{
-          paddingTop: relaxed ? space[4] : space[3],
-          paddingHorizontal: space[5],
-          paddingBottom: (relaxed ? space[10] : space[3]) + bottomInset,
-        }}
+        style={[
+          styles.footer,
+          relaxed ? styles.footerRelaxed : styles.footerKeyboard,
+          { paddingBottom: (relaxed ? space[10] : space[3]) + bottomInset },
+        ]}
       >
         {action}
       </View>

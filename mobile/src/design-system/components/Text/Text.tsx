@@ -1,15 +1,7 @@
 import { Text as RNText, useWindowDimensions, type TextProps as RNTextProps } from 'react-native';
 
-import { useTheme, type Theme } from '../../theme/ThemeProvider';
-import {
-  codeScale,
-  fontFamily,
-  resolveFluid,
-  textStyles,
-  type FontWeight,
-  type Role,
-  type TextVariant,
-} from '../../tokens/colors';
+import { useTheme, type Theme } from '../../theme';
+import { fontFamily, resolveFluid, textStyles, type FontWeight, type Role, type TextVariant } from '../../tokens';
 
 /** Text color: one of the `--text-*` tokens or a role's `--text-{role}`. */
 export type TextColor = 'primary' | 'secondary' | 'disabled' | Role;
@@ -40,7 +32,11 @@ export interface TextProps extends RNTextProps {
   weight?: FontWeight;
 }
 
-/** Design system text: applies the font, size, line height, tracking, and color of a type style. */
+/**
+ * Design system text: applies the font, size, line height, tracking, and color of a type style.
+ * Its style is computed while rendering instead of in a `.styles.ts`: the fluid sizes depend on
+ * the window width, and the font, color, and digits on the props.
+ */
 export function Text({ variant = 'body', color = 'primary', tabular, weight, style, ...rest }: TextProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -64,15 +60,4 @@ export function Text({ variant = 'body', color = 'primary', tabular, weight, sty
       {...rest}
     />
   );
-}
-
-/** `Code` props: the React Native props plus the size of the surrounding text. */
-export interface CodeProps extends RNTextProps {
-  /** Size of the surrounding text; code is 0.875 of it. */
-  parentSize?: number;
-}
-
-/** Monospaced text for code and data, meant to be nested inside `Text`. */
-export function Code({ parentSize = textStyles.body.size, style, ...rest }: CodeProps) {
-  return <RNText style={[{ fontFamily: fontFamily.mono, fontSize: parentSize * codeScale }, style]} {...rest} />;
 }

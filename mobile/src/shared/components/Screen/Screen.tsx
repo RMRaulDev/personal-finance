@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Root, space, useTheme } from '../../../design-system';
+import { Root, space, useTheme, useThemedStyles } from '../../../design-system';
+
+import { createScreenStyles } from './Screen.styles';
 
 /** Props of `Screen`. */
 export interface ScreenProps {
@@ -34,22 +36,20 @@ export interface ScreenProps {
  */
 export function Screen({ header, refreshing, onRefresh, overlay, footer, children }: ScreenProps) {
   const { colors } = useTheme();
+  const styles = useThemedStyles(createScreenStyles);
   const insets = useSafeAreaInsets();
 
   return (
     <Root style={{ paddingTop: insets.top }}>
       <StatusBar style="auto" />
       {header}
-      <View style={{ flex: 1 }}>
+      <View style={styles.body}>
         <ScrollView
-          contentContainerStyle={{
-            gap: space[8],
-            paddingTop: space[4],
-            paddingHorizontal: space[5],
-            // Above a footer the content ends where the footer starts, which already clears the
-            // bottom safe area, so only a gap above the footer is left.
-            paddingBottom: footer === undefined ? space[12] + insets.bottom : space[10],
-          }}
+          contentContainerStyle={[
+            styles.content,
+            // Without a footer the content clears the bottom safe area itself.
+            footer === undefined ? { paddingBottom: space[12] + insets.bottom } : styles.contentAboveFooter,
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

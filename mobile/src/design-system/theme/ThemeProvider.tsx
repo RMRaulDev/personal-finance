@@ -1,7 +1,7 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { colors, shadows, type ColorScheme, type SemanticColors } from '../tokens/colors';
+import { colors, shadows, type ColorScheme, type SemanticColors } from '../tokens';
 
 /** Resolved theme: the active scheme with its semantic colors and shadows. */
 export interface Theme {
@@ -10,7 +10,8 @@ export interface Theme {
   shadows: { md: string; lg: string };
 }
 
-const ThemeContext = createContext<Theme | null>(null);
+/** Context that carries the active theme; read it with `useTheme()`, never directly. */
+export const ThemeContext = createContext<Theme | null>(null);
 
 interface ThemeProviderProps {
   /** Forces a theme (equivalent to `data-theme`). Without a value it follows the system theme. */
@@ -27,13 +28,4 @@ export function ThemeProvider({ scheme, children }: ThemeProviderProps) {
     [resolved],
   );
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
-}
-
-/** Returns the active theme. Throws if used outside `DesignSystemProvider`. */
-export function useTheme(): Theme {
-  const theme = useContext(ThemeContext);
-  if (!theme) {
-    throw new Error('useTheme must be used inside <DesignSystemProvider>');
-  }
-  return theme;
 }

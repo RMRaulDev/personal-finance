@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo } from 'react-native';
 
-import { toastDurationMs, toastDurationScreenReaderMs } from '../../designSpec';
+/** How long a toast stays on screen, in milliseconds. */
+const TOAST_DURATION_MS = 4000;
+
+/**
+ * Longer toast duration while a screen reader is on, so its user has time to reach "Deshacer".
+ * Not part of the design, which only covers sighted use.
+ */
+const TOAST_DURATION_SCREEN_READER_MS = 10000;
 
 /** Optional button of a toast, e.g. "Deshacer". */
 export interface ToastAction {
@@ -48,7 +55,7 @@ export function useToast() {
 
   const hide = useCallback(() => setToast(null), []);
 
-  const duration = screenReader ? toastDurationScreenReaderMs : toastDurationMs;
+  const duration = screenReader ? TOAST_DURATION_SCREEN_READER_MS : TOAST_DURATION_MS;
 
   useEffect(() => {
     if (!toast) {

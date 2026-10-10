@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { AccessibilityInfo, Platform, View } from 'react-native';
 
-import { ActivityBar, space, Text } from '../../../../design-system';
+import { ActivityBar, Text, useThemedStyles } from '../../../../design-system';
 
-import { preparationBottomPadding } from '../../designSpec';
+import { createPreparationViewStyles } from './PreparationView.styles';
 
 /** Props of `PreparationView`. */
 export interface PreparationViewProps {
@@ -13,6 +13,7 @@ export interface PreparationViewProps {
 
 /** The wait while the server creates the account and its categories. It offers no actions. */
 export function PreparationView({ accountName }: PreparationViewProps) {
+  const styles = useThemedStyles(createPreparationViewStyles);
   const title = `Preparando ${accountName}…`;
 
   useEffect(() => {
@@ -23,22 +24,13 @@ export function PreparationView({ accountName }: PreparationViewProps) {
   }, [title]);
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: space[5],
-        paddingHorizontal: space[8],
-        paddingBottom: preparationBottomPadding,
-      }}
-    >
+    <View style={styles.view}>
       <ActivityBar accessibilityLabel={title} />
-      <View accessibilityLiveRegion="polite" style={{ gap: space[2] }}>
-        <Text variant="heading" accessibilityRole="header" style={{ textAlign: 'center' }}>
+      <View accessibilityLiveRegion="polite" style={styles.texts}>
+        <Text variant="heading" accessibilityRole="header" style={styles.centered}>
           {title}
         </Text>
-        <Text color="secondary" style={{ textAlign: 'center' }}>
+        <Text color="secondary" style={styles.centered}>
           Creamos tu cuenta y tus categorías.
         </Text>
       </View>

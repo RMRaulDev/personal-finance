@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { View, type ViewProps } from 'react-native';
 
-import { Text } from '../Text/Text';
-import { useTheme } from '../../theme/ThemeProvider';
-import { borderWidth, radius, space } from '../../tokens/colors';
+import { useThemedStyles } from '../../theme';
+import { Text } from '../Text';
+
+import { createCardStyles } from './Card.styles';
 
 /** `Card` props: title, body, and optional actions. */
 export interface CardProps extends ViewProps {
@@ -18,28 +19,15 @@ export interface CardProps extends ViewProps {
 
 /** Equivalent to `r-card`: delimited by a border, never by a shadow. */
 export function Card({ title, children, actions, dense = false, style, ...rest }: CardProps) {
-  const { colors } = useTheme();
+  const styles = useThemedStyles(createCardStyles);
 
   return (
-    <View
-      style={[
-        {
-          backgroundColor: colors.surface.raised,
-          borderWidth: borderWidth.hairline,
-          borderColor: colors.border.subtle,
-          borderRadius: radius.lg,
-          padding: dense ? space[4] : space[6],
-          maxWidth: 360,
-        },
-        style,
-      ]}
-      {...rest}
-    >
+    <View style={[styles.card, dense && styles.dense, style]} {...rest}>
       <Text variant="heading" accessibilityRole="header">
         {title}
       </Text>
       {children !== undefined && (
-        <View style={{ marginTop: space[2] }}>
+        <View style={styles.body}>
           {typeof children === 'string' ? (
             <Text variant="body" color="secondary">
               {children}
@@ -49,9 +37,7 @@ export function Card({ title, children, actions, dense = false, style, ...rest }
           )}
         </View>
       )}
-      {actions !== undefined && (
-        <View style={{ marginTop: space[4], flexDirection: 'row', gap: space[2] }}>{actions}</View>
-      )}
+      {actions !== undefined && <View style={styles.actions}>{actions}</View>}
     </View>
   );
 }

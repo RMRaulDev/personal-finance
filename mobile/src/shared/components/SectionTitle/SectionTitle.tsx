@@ -1,6 +1,6 @@
-import { Text, type TextProps } from '../../../design-system';
+import { Text, useThemedStyles, type TextProps } from '../../../design-system';
 
-import { sectionTitle } from '../../designSpec';
+import { createSectionTitleStyles } from './SectionTitle.styles';
 
 /**
  * Props of `SectionTitle`: the design system `Text` props. The weight and the design's size are
@@ -16,19 +16,7 @@ export interface SectionTitleProps extends TextProps {
 
 /** Section title of a screen ("Próximos compromisos", "Reciente"), as the design sizes it. */
 export function SectionTitle({ style, ...rest }: SectionTitleProps) {
-  return (
-    <Text
-      accessibilityRole="header"
-      weight={600}
-      style={[
-        {
-          fontSize: sectionTitle.fontSize,
-          lineHeight: sectionTitle.fontSize * sectionTitle.lineHeight,
-          letterSpacing: 0,
-        },
-        style,
-      ]}
-      {...rest}
-    />
-  );
+  const styles = useThemedStyles(createSectionTitleStyles);
+
+  return <Text accessibilityRole="header" weight={600} style={[styles.title, style]} {...rest} />;
 }

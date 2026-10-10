@@ -5,20 +5,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AccountResponse } from '../../../../api';
 import {
   AmountField,
-  borderWidth,
   Button,
   ChoiceGroup,
-  radius,
   space,
   Text,
-  useTheme,
+  useThemedStyles,
   type ChoiceOption,
 } from '../../../../design-system';
 import { formatAmountInput, parseAmountInput } from '../../../../lib';
 import { DetailRow, useKeyboardVisible } from '../../../../shared';
 
-import { sheetHandle, sheetMaxHeight } from '../../designSpec';
-import { accountOptions, AMOUNT_REQUIRED_ERROR, registrationTitle, type RegistrationType } from '../../dashboard.model';
+import {
+  accountOptions,
+  AMOUNT_REQUIRED_ERROR,
+  registrationTitle,
+  type RegistrationType,
+} from './RegistrationSheet.model';
+import { createRegistrationSheetStyles } from './RegistrationSheet.styles';
 
 /** What the sheet hands over on "Guardar", already validated. */
 export interface RegistrationInput {
@@ -70,8 +73,7 @@ export function RegistrationSheet({
   onSave,
   onClose,
 }: RegistrationSheetProps) {
-  const theme = useTheme();
-  const { colors } = theme;
+  const styles = useThemedStyles(createRegistrationSheetStyles);
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
   const [amount, setAmount] = useState('');
@@ -114,54 +116,18 @@ export function RegistrationSheet({
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar"
-          onPress={close}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            // The scrim token darkens the screen in both themes.
-            backgroundColor: colors.scrim,
-          }}
-        />
-        <View
-          accessibilityViewIsModal
-          aria-label={title}
-          style={{
-            maxHeight: sheetMaxHeight,
-            backgroundColor: colors.surface.overlay,
-            borderTopLeftRadius: radius.xl,
-            borderTopRightRadius: radius.xl,
-            // A floating element, one of the few allowed a shadow.
-            boxShadow: theme.shadows.lg,
-          }}
-        >
+      <KeyboardAvoidingView behavior="padding" style={styles.container}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={close} style={styles.backdrop} />
+        <View accessibilityViewIsModal aria-label={title} style={styles.sheet}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              gap: space[5],
-              paddingTop: space[3],
-              paddingHorizontal: space[5],
+            contentContainerStyle={[
+              styles.content,
               // Above the keyboard the bottom safe area is covered, so its inset would only add a gap.
-              paddingBottom: space[8] + (keyboardVisible ? 0 : insets.bottom),
-            }}
+              { paddingBottom: space[8] + (keyboardVisible ? 0 : insets.bottom) },
+            ]}
           >
-            <View
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-              style={{
-                alignSelf: 'center',
-                width: sheetHandle.width,
-                height: sheetHandle.height,
-                borderRadius: radius.full,
-                backgroundColor: colors.border.default,
-              }}
-            />
+            <View accessibilityElementsHidden importantForAccessibility="no" style={styles.handle} />
             <Text variant="heading" accessibilityRole="header">
               {title}
             </Text>
@@ -187,13 +153,7 @@ export function RegistrationSheet({
             )}
             {accounts.length === 1 && accounts[0] && (
               // The only active account is a fact, not a choice: shown under a divider.
-              <View
-                style={{
-                  paddingTop: space[3],
-                  borderTopWidth: borderWidth.hairline,
-                  borderTopColor: colors.border.subtle,
-                }}
-              >
+              <View style={styles.accountFact}>
                 <DetailRow label="Cuenta" value={accounts[0].name} />
               </View>
             )}
@@ -206,11 +166,11 @@ export function RegistrationSheet({
                 onChange={(value) => setPickedAccountId(value ?? accountId)}
               />
             )}
-            <View style={{ flexDirection: 'row', gap: space[2] }}>
+            <View style={styles.actions}>
               <Button variant="ghost" size="lg" inactive={saving} onPress={close}>
                 Cancelar
               </Button>
-              <View style={{ flex: 1 }}>
+              <View style={styles.primarySlot}>
                 <Button variant="primary" size="lg" fullWidth inactive={saving} onPress={save}>
                   Guardar
                 </Button>

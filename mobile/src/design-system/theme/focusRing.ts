@@ -1,7 +1,8 @@
 import type { ViewStyle } from 'react-native';
 
+import { borderWidth } from '../tokens';
+
 import type { Theme } from './ThemeProvider';
-import { borderWidth } from '../tokens/colors';
 
 /** Design system focus ring: 2px in `border-focus` with a 2px offset. Never remove it. */
 export function focusRing(theme: Theme): ViewStyle {

@@ -1,10 +1,10 @@
 import { useId, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { focusRing } from '../../theme/focusRing';
-import { Text } from '../Text/Text';
-import { useTheme } from '../../theme/ThemeProvider';
-import { borderWidth, control, fontFamily, radius, space, textStyles } from '../../tokens/colors';
+import { useTheme, useThemedStyles } from '../../theme';
+import { Text } from '../Text';
+
+import { createAmountFieldStyles } from './AmountField.styles';
 
 /** `AmountField` props: label, the typed text, and its help or error. */
 export interface AmountFieldProps {
@@ -33,35 +33,24 @@ export interface AmountFieldProps {
  * pending adoption in the Lucas DS source project.
  */
 export function AmountField({ label, value, onChangeText, help, error, autoFocus, editable = true }: AmountFieldProps) {
-  const theme = useTheme();
-  const { colors } = theme;
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createAmountFieldStyles);
   const [focused, setFocused] = useState(false);
   const labelId = useId();
   const invalid = error !== undefined;
   const message = invalid ? error : help;
-  const amount = textStyles.amount;
 
   return (
-    <View style={{ flexDirection: 'column', gap: space[1] }}>
+    <View style={styles.field}>
       <Text nativeID={labelId} variant="body-sm" weight={500}>
         {label}
       </Text>
       <View
         style={[
-          {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: space[2],
-            height: control.xl,
-            paddingHorizontal: space[4],
-            borderRadius: radius.md,
-            borderWidth: borderWidth.hairline,
-            borderColor: invalid ? colors.role.danger.fill : colors.border.control,
-            backgroundColor: colors.surface.raised,
-          },
-          // The ring goes on the container (`:focus-within` in the web version), in danger when invalid.
-          focused && focusRing(theme),
-          focused && invalid && { outlineColor: colors.role.danger.fill },
+          styles.box,
+          invalid && styles.boxInvalid,
+          focused && styles.boxFocused,
+          focused && invalid && styles.boxFocusedInvalid,
         ]}
       >
         <Text
@@ -87,20 +76,7 @@ export function AmountField({ label, value, onChangeText, help, error, autoFocus
           aria-invalid={invalid}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            height: '100%',
-            padding: 0,
-            fontFamily: fontFamily.sans[amount.weight],
-            fontSize: amount.size,
-            letterSpacing: amount.tracking * amount.size,
-            fontVariant: ['tabular-nums'],
-            color: colors.text.primary,
-            // Android pads text vertically by default, which pushes a large single line off center.
-            includeFontPadding: false,
-            textAlignVertical: 'center',
-          }}
+          style={styles.input}
         />
         <Text variant="body-sm" color="secondary" accessibilityElementsHidden importantForAccessibility="no">
           MXN

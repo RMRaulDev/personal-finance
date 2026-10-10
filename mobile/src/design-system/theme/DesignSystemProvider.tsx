@@ -5,8 +5,9 @@ import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono/400R
 import { useFonts } from 'expo-font';
 import type { ReactNode } from 'react';
 
+import type { ColorScheme } from '../tokens';
+
 import { ThemeProvider } from './ThemeProvider';
-import type { ColorScheme } from '../tokens/colors';
 
 interface DesignSystemProviderProps {
   /** Forces a theme. Without a value it follows the system theme. */

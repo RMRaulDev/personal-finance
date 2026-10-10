@@ -1,29 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { request } from '../../client/client';
-import { isApiError } from '../../client/errors';
-import { queryKeys } from '../../client/queryClient';
+import { isApiError, queryKeys } from '../../client';
 
-// The initial setup: `POST /api/v1/setup` (`entry.web.setup`).
-
-/** Body of `POST /setup`: the first account and its opening balance (0 or more). */
-export interface CompleteInitialSetupRequest {
-  accountName: string;
-  openingBalanceCents: number;
-}
-
-/** Response of `POST /setup`: the id of the account it created. */
-export interface CompleteInitialSetupResponse {
-  id: string;
-}
-
-/**
- * `POST /setup`: creates the first account and the default categories in one transaction. Answers
- * 409 `INITIAL_SETUP_ALREADY_COMPLETED` when the user already has any account or category.
- */
-export function completeInitialSetup(body: CompleteInitialSetupRequest): Promise<CompleteInitialSetupResponse> {
-  return request<CompleteInitialSetupResponse>('POST', '/setup', body);
-}
+import { completeInitialSetup } from './endpoints';
+import type { CompleteInitialSetupRequest } from './types';
 
 /** True for the 409 that says the setup already ran. */
 function isSetupAlreadyCompleted(error: unknown): boolean {

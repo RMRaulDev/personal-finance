@@ -1,6 +1,3 @@
-import { queryOptions } from '@tanstack/react-query';
-
-import { request } from '../../client/client';
 import type {
   AccountSummary,
   CategorySummary,
@@ -8,10 +5,9 @@ import type {
   ObligationSummary,
   OperationType,
   TransferAccounts,
-} from '../common/types';
-import { queryKeys } from '../../client/queryClient';
+} from '../common';
 
-// The dashboard resource: `GET /api/v1/dashboard` (`entry.web.dashboard`).
+// Types of the dashboard resource: `GET /api/v1/dashboard` (`entry.web.dashboard`).
 
 /** Dates the dashboard covers: `from` is the server's "today", `to` is inclusive. */
 export interface Horizon {
@@ -96,14 +92,4 @@ export interface DashboardResponse {
   attention: AttentionItem[];
   upcomingCommitments: UpcomingCommitment[];
   recent: RecentActivityItem[];
-}
-
-/** `GET /dashboard`: everything the home screen shows, computed by the server. */
-export function getDashboard(): Promise<DashboardResponse> {
-  return request<DashboardResponse>('GET', '/dashboard');
-}
-
-/** Query options of the dashboard, for `useQuery(dashboardQuery())`. */
-export function dashboardQuery() {
-  return queryOptions({ queryKey: queryKeys.dashboard, queryFn: getDashboard });
 }

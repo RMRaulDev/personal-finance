@@ -1,10 +1,11 @@
 import { View } from 'react-native';
 
 import type { AvailableToSpend } from '../../../../api';
-import { borderWidth, control, radius, space, Stack, Text, useTheme } from '../../../../design-system';
+import { Stack, Text, useThemedStyles } from '../../../../design-system';
 import { formatMoney } from '../../../../lib';
 
-import { heroAmount, shortfallNoteMaxWidth } from '../../designSpec';
+import { createAvailableSummaryStyles } from './AvailableSummary.styles';
+import { Strong } from './Strong';
 
 /** Props of `AvailableSummary`. */
 export interface AvailableSummaryProps {
@@ -13,49 +14,27 @@ export interface AvailableSummaryProps {
   horizonLabel: string;
 }
 
-/** Props of `Strong`. */
-interface StrongProps {
-  children: string;
-}
-
-/** Emphasized inline amount inside a secondary sentence. */
-function Strong({ children }: StrongProps) {
-  return (
-    <Text variant="body-sm" tabular weight={500}>
-      {children}
-    </Text>
-  );
-}
-
 /**
  * "Disponible para gastar" block: the hero amount, the shortfall note, the balance minus
  * commitments breakdown, and the horizon chip.
  */
 export function AvailableSummary({ availableToSpend, horizonLabel }: AvailableSummaryProps) {
-  const { colors } = useTheme();
+  const styles = useThemedStyles(createAvailableSummaryStyles);
   const { availableCents, balanceCents, committedCents, shortfallCents } = availableToSpend;
 
   return (
-    <Stack style={{ gap: space[2] }}>
+    <Stack style={styles.summary}>
       <Text variant="body-sm" color="secondary" weight={500}>
         Disponible para gastar
       </Text>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: space[3] }}>
-        <Text
-          tabular
-          weight={600}
-          style={{
-            fontSize: heroAmount.fontSize,
-            lineHeight: heroAmount.fontSize * heroAmount.lineHeight,
-            letterSpacing: heroAmount.fontSize * heroAmount.tracking,
-          }}
-        >
+      <View style={styles.amountRow}>
+        <Text tabular weight={600} style={styles.heroAmount}>
           {formatMoney(availableCents)}
         </Text>
         {shortfallCents > 0 && (
           // Next to the result, so "Saldo − Compromisos" still adds up while Disponible stays at $0.
-          <Text variant="body-sm" color="secondary" style={{ maxWidth: shortfallNoteMaxWidth }}>
+          <Text variant="body-sm" color="secondary" style={styles.shortfallNote}>
             faltan <Strong>{formatMoney(shortfallCents)}</Strong> para cubrir tus compromisos
           </Text>
         )}
@@ -66,19 +45,7 @@ export function AvailableSummary({ availableToSpend, horizonLabel }: AvailableSu
       </Text>
 
       {/* Not pressable: the API horizon is fixed at 14 days (docs/backlog.md §9.1). */}
-      <View
-        style={{
-          marginTop: space[2],
-          alignSelf: 'flex-start',
-          justifyContent: 'center',
-          height: control.sm,
-          paddingHorizontal: space[3],
-          borderRadius: radius.full,
-          borderWidth: borderWidth.hairline,
-          borderColor: colors.border.default,
-          backgroundColor: colors.surface.raised,
-        }}
-      >
+      <View style={styles.horizonChip}>
         {/* 14px / 500: the design system body-sm size with the UI weight. */}
         <Text variant="body-sm" weight={500}>
           {horizonLabel}

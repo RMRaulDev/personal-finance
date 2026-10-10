@@ -12,7 +12,7 @@ import {
   useRegisterExpense,
   useRegisterIncome,
 } from '../../api';
-import { space, Text } from '../../design-system';
+import { space, Text, useThemedStyles } from '../../design-system';
 import { formatLongDate } from '../../lib';
 import {
   errorMessage,
@@ -25,32 +25,36 @@ import {
   useToast,
 } from '../../shared';
 
-import { AccountNotice } from './components/AccountNotice/AccountNotice';
-import { ActionBar } from './components/ActionBar/ActionBar';
-import { AvailableSummary } from './components/AvailableSummary/AvailableSummary';
-import { CommitmentList } from './components/CommitmentList/CommitmentList';
+import { AccountNotice } from './components/AccountNotice';
+import { ActionBar } from './components/ActionBar';
+import { AvailableSummary } from './components/AvailableSummary';
+import { CommitmentList } from './components/CommitmentList';
+import { RecentList } from './components/RecentList';
 import {
   ACCOUNTS_NOT_LOADED_ERROR,
+  activeAccounts,
+  categoryOptions,
+  defaultAccountId,
+  NO_ACTIVE_ACCOUNT_ERROR,
+  RegistrationSheet,
+  registeredToastText,
+  type RegistrationInput,
+  type RegistrationType,
+} from './components/RegistrationSheet';
+import {
   accountNoticeText,
   accountShortfalls,
-  activeAccounts,
   arrivalToastText,
-  categoryOptions,
   commitmentRows,
-  defaultAccountId,
   extraNoticesText,
   hasAnyObligation,
-  NO_ACTIVE_ACCOUNT_ERROR,
   horizonDays,
   horizonLabel,
   paidToastText,
   recentOperations,
-  registeredToastText,
   type CommitmentRow,
-  type RegistrationType,
 } from './dashboard.model';
-import { RecentList } from './components/RecentList/RecentList';
-import { RegistrationSheet, type RegistrationInput } from './components/RegistrationSheet/RegistrationSheet';
+import { createDashboardScreenStyles } from './DashboardScreen.styles';
 
 /** Props of `DashboardScreen`. */
 export interface DashboardScreenProps {
@@ -72,6 +76,7 @@ export interface DashboardScreenProps {
  * registration sheet ("Ingreso", "+ Gasto"). "Transferir" stays hidden until it has a design.
  */
 export function DashboardScreen({ arrivalAccountName, onArrivalShown }: DashboardScreenProps) {
+  const styles = useThemedStyles(createDashboardScreenStyles);
   const dashboard = useQuery(dashboardQuery());
   const hasObligations = useQuery({ ...obligationsQuery(), select: hasAnyObligation });
   // Loaded with the dashboard so the sheet opens with its choices ready.
@@ -196,7 +201,7 @@ export function DashboardScreen({ arrivalAccountName, onArrivalShown }: Dashboar
       refreshing={refreshing}
       onRefresh={refresh}
       header={
-        <View style={{ paddingTop: space[2], paddingRight: space[4], paddingLeft: space[5] }}>
+        <View style={styles.header}>
           {/* "Today" is the server's, not the device's: both must agree on what is due. */}
           <Text variant="body-sm" color="secondary">
             {formatLongDate(data.horizon.from)}

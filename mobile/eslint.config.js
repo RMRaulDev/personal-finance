@@ -21,6 +21,60 @@ function listFeatures() {
     .map((entry) => entry.name);
 }
 
+/** Lists the names of the subfolders of a folder under mobile/ (none when it does not exist). */
+function listDirs(relativeDir) {
+  const dir = path.join(__dirname, relativeDir);
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+}
+
+/**
+ * Lists the unit folders (see .github/instructions/mobile.md → Architecture): every component
+ * folder, every api resource and api/client, every lib topic, and the design system's tokens and
+ * theme. Computed on every lint run, so a new unit is covered without touching this file.
+ */
+function listUnits() {
+  const componentRoots = [
+    './src/design-system/components',
+    './src/shared/components',
+    ...listFeatures().map((feature) => `./src/features/${feature}/components`),
+  ];
+  const units = [
+    ...componentRoots.flatMap((root) => listDirs(root).map((name) => `${root}/${name}`)),
+    ...listDirs('./src/api/resources').map((name) => `./src/api/resources/${name}`),
+    ...listDirs('./src/lib').map((name) => `./src/lib/${name}`),
+  ];
+  for (const fixed of ['./src/api/client', './src/design-system/tokens', './src/design-system/theme']) {
+    if (fs.existsSync(path.join(__dirname, fixed))) {
+      units.push(fixed);
+    }
+  }
+  return units;
+}
+
+/**
+ * Everything under src except `unit` and the folders that contain it: the siblings of the unit
+ * and of each of its ancestors. Together they are "outside the unit" for a restricted-path zone.
+ */
+function outsideOf(unit) {
+  const parts = unit.replace('./', '').split('/');
+  const targets = [];
+  for (let depth = 1; depth < parts.length; depth += 1) {
+    const parent = parts.slice(0, depth).join('/');
+    for (const entry of fs.readdirSync(path.join(__dirname, parent))) {
+      if (entry !== parts[depth]) {
+        targets.push(`./${parent}/${entry}`);
+      }
+    }
+  }
+  return targets;
+}
+
 const features = listFeatures();
 const featurePaths = features.map((feature) => `./src/features/${feature}`);
 
@@ -84,6 +138,30 @@ function architectureZones() {
       message: `Import ${module.replace('./', '')} through its public index.ts, not its inner files.`,
     });
   }
+
+  // Inside a module, outside a unit folder only its index.ts may be imported.
+  for (const unit of listUnits()) {
+    zones.push({
+      target: outsideOf(unit),
+      from: unit,
+      except: ['./index.ts'],
+      message: `Import ${unit.replace('./src/', '')} through its index.ts, not its inner files.`,
+    });
+  }
+
+  // A .styles.ts is built from design-system tokens only.
+  zones.push(
+    {
+      target: './src/**/*.styles.ts',
+      from: ['./src/app', './src/features', './src/shared', './src/api', './src/lib'],
+      message: 'A .styles.ts imports only from design-system.',
+    },
+    {
+      target: './src/design-system/**/*.styles.ts',
+      from: './src/design-system/components',
+      message: 'Inside design-system, a .styles.ts imports only from tokens and theme.',
+    },
+  );
 
   return zones;
 }

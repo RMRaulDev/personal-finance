@@ -1,7 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import type { ReactNode } from 'react';
 
-import { Root, space } from '../../../design-system';
+import { Root, useThemedStyles } from '../../../design-system';
+
+import { createCenteredStateStyles } from './CenteredState.styles';
 
 /** Props of `CenteredState`. */
 export interface CenteredStateProps {
@@ -10,11 +12,13 @@ export interface CenteredStateProps {
 
 /**
  * Full screen with its content centered, for the first load and for a load error, which the
- * designs do not cover. Internal to `shared/`: screens use `ScreenLoading` and `ScreenError`.
+ * designs do not cover. Internal to the `Screen` unit: screens use `ScreenLoading` and `ScreenError`.
  */
 export function CenteredState({ children }: CenteredStateProps) {
+  const styles = useThemedStyles(createCenteredStateStyles);
+
   return (
-    <Root style={{ alignItems: 'center', justifyContent: 'center', padding: space[6] }}>
+    <Root style={styles.screen}>
       <StatusBar style="auto" />
       {children}
     </Root>

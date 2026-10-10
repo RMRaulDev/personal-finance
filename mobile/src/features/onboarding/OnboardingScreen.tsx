@@ -4,10 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { useCompleteInitialSetup } from '../../api';
-import { AmountField, Button, Field, Root } from '../../design-system';
+import { AmountField, Button, Field, Root, useThemedStyles } from '../../design-system';
 import { formatAmountInput, parseAmountInput } from '../../lib';
 import { useMutationLock } from '../../shared';
 
+import { OnboardingStep } from './components/OnboardingStep';
+import { PreparationView, usePreparation } from './components/PreparationView';
+import { SetupErrorView } from './components/SetupErrorView';
+import { createOnboardingScreenStyles } from './OnboardingScreen.styles';
 import {
   ACCOUNT_NAME_MAX_LENGTH,
   balanceFeedback,
@@ -15,10 +19,6 @@ import {
   DEFAULT_ACCOUNT_NAME,
   NAME_EMPTY_ERROR,
 } from './onboarding.model';
-import { OnboardingStep } from './components/OnboardingStep/OnboardingStep';
-import { PreparationView } from './components/PreparationView/PreparationView';
-import { SetupErrorView } from './components/SetupErrorView/SetupErrorView';
-import { usePreparation } from './components/PreparationView/usePreparation';
 
 /** Props of `OnboardingScreen`. */
 export interface OnboardingScreenProps {
@@ -43,6 +43,7 @@ interface SetupFailure {
  * fails.
  */
 export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
+  const styles = useThemedStyles(createOnboardingScreenStyles);
   const insets = useSafeAreaInsets();
   const setup = useCompleteInitialSetup();
   // The setup is a mutation like any other: one at a time, and its buttons inactive meanwhile.
@@ -225,7 +226,7 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
       <StatusBar style="auto" />
       {/* "padding" on both platforms: the view adds only the keyboard's overlap, so it is a no-op
           where the system already resized the window. */}
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={styles.keyboardArea}>
         {content()}
       </KeyboardAvoidingView>
     </Root>

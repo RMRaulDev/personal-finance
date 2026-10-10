@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Pressable } from 'react-native';
 
-import { control, focusRing, radius, space, Text, useTheme } from '../../../../design-system';
+import { Text, useThemedStyles } from '../../../../design-system';
 import { Notice } from '../../../../shared';
+
+import { createAccountNoticeStyles } from './AccountNotice.styles';
 
 /** Props of `AccountNotice`. */
 export interface AccountNoticeProps {
@@ -20,33 +22,22 @@ export interface AccountNoticeProps {
  * money from (docs/backlog.md §9.4).
  */
 export function AccountNotice({ text, extraCount, onShowExtra }: AccountNoticeProps) {
-  const theme = useTheme();
+  const styles = useThemedStyles(createAccountNoticeStyles);
   const [linkFocused, setLinkFocused] = useState(false);
   const extraLabel = extraCount === 1 ? 'y 1 aviso más' : `y ${extraCount} avisos más`;
 
   return (
-    // Pulled up toward the available amount, as in the design, because it qualifies it.
-    <Notice text={text} style={{ marginTop: -space[4] }}>
+    <Notice text={text} style={styles.notice}>
       {extraCount > 0 && (
         <Pressable
           accessibilityRole="button"
           onPress={onShowExtra}
           onFocus={() => setLinkFocused(true)}
           onBlur={() => setLinkFocused(false)}
-          style={[
-            {
-              alignSelf: 'center',
-              justifyContent: 'center',
-              // The text is small, but the touch target keeps the 48px mobile control height.
-              minHeight: control.lg,
-              paddingHorizontal: space[3],
-              borderRadius: radius.md,
-            },
-            linkFocused && focusRing(theme),
-          ]}
+          style={[styles.link, linkFocused && styles.linkFocused]}
         >
           {/* 12px / 500 is the design system caption style. */}
-          <Text variant="caption" color="secondary" style={{ textDecorationLine: 'underline' }}>
+          <Text variant="caption" color="secondary" style={styles.linkText}>
             {extraLabel}
           </Text>
         </Pressable>
