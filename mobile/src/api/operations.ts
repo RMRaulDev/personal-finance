@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { request } from './client';
-import type { IsoDate } from './common';
-import { invalidateMoneyMovement } from './invalidation';
+import { request } from './client/client';
+import type { IsoDate } from './resources/common/types';
+import { invalidateMoneyMovement } from './client/invalidation';
 
 // The operations resource: `/api/v1/operations` (`entry.web.operation`).
 

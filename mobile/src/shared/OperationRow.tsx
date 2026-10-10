@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { borderWidth, radius, space, Text, useTheme } from '../design-system';
 
 import { operationAvatar } from './designSpec';
-import type { OperationDisplay } from './operationDisplay';
+import type { OperationDisplay } from './components/OperationRow/operationDisplay';
 
 /** Props of `OperationRow`. */
 export interface OperationRowProps {

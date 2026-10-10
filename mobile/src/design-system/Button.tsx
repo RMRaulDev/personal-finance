@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Pressable, Text as RNText, type GestureResponderEvent, type PressableProps } from 'react-native';
 
-import { focusRing } from './focus';
-import { useTheme, type Theme } from './theme';
-import { borderWidth, control, fontFamily, radius, space } from './tokens';
+import { focusRing } from './theme/focusRing';
+import { useTheme, type Theme } from './theme/ThemeProvider';
+import { borderWidth, control, fontFamily, radius, space } from './tokens/colors';
 
 /** Button variant: `primary` (one per screen), `secondary` (default), or `ghost` (tertiary). */
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';

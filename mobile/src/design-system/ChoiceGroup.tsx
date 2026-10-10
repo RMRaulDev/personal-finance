@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { focusRing } from './focus';
-import { Text } from './Text';
-import { useTheme } from './theme';
-import { borderWidth, control, radius, space } from './tokens';
+import { focusRing } from './theme/focusRing';
+import { Text } from './components/Text/Text';
+import { useTheme } from './theme/ThemeProvider';
+import { borderWidth, control, radius, space } from './tokens/colors';
 
 /** One option of a `ChoiceGroup`. */
 export interface ChoiceOption<T extends string> {

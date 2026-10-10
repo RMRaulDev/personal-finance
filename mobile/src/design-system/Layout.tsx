@@ -1,7 +1,7 @@
 import { View, type ViewProps } from 'react-native';
 
-import { useTheme } from './theme';
-import { space } from './tokens';
+import { useTheme } from './theme/ThemeProvider';
+import { space } from './tokens/colors';
 
 /** Equivalent to `r-root`: page background. Used once, at the root of each screen. */
 export function Root({ style, ...rest }: ViewProps) {

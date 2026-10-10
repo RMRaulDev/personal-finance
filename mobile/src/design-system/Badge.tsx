@@ -1,7 +1,7 @@
 import { Text as RNText, View } from 'react-native';
 
-import { useTheme } from './theme';
-import { borderWidth, fontFamily, radius, space, textStyles, type Role } from './tokens';
+import { useTheme } from './theme/ThemeProvider';
+import { borderWidth, fontFamily, radius, space, textStyles, type Role } from './tokens/colors';
 
 /** `Badge` props: the status text and, when it applies, its color role. */
 export interface BadgeProps {

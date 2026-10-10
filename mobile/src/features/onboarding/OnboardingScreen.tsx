@@ -14,11 +14,11 @@ import {
   balanceTitle,
   DEFAULT_ACCOUNT_NAME,
   NAME_EMPTY_ERROR,
-} from './model';
-import { OnboardingStep } from './OnboardingStep';
-import { PreparationView } from './PreparationView';
-import { SetupErrorView } from './SetupErrorView';
-import { usePreparation } from './usePreparation';
+} from './onboarding.model';
+import { OnboardingStep } from './components/OnboardingStep/OnboardingStep';
+import { PreparationView } from './components/PreparationView/PreparationView';
+import { SetupErrorView } from './components/SetupErrorView/SetupErrorView';
+import { usePreparation } from './components/PreparationView/usePreparation';
 
 /** Props of `OnboardingScreen`. */
 export interface OnboardingScreenProps {

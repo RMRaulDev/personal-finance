@@ -25,10 +25,10 @@ import {
   useToast,
 } from '../../shared';
 
-import { AccountNotice } from './AccountNotice';
-import { ActionBar } from './ActionBar';
-import { AvailableSummary } from './AvailableSummary';
-import { CommitmentList } from './CommitmentList';
+import { AccountNotice } from './components/AccountNotice/AccountNotice';
+import { ActionBar } from './components/ActionBar/ActionBar';
+import { AvailableSummary } from './components/AvailableSummary/AvailableSummary';
+import { CommitmentList } from './components/CommitmentList/CommitmentList';
 import {
   ACCOUNTS_NOT_LOADED_ERROR,
   accountNoticeText,
@@ -48,9 +48,9 @@ import {
   registeredToastText,
   type CommitmentRow,
   type RegistrationType,
-} from './model';
-import { RecentList } from './RecentList';
-import { RegistrationSheet, type RegistrationInput } from './RegistrationSheet';
+} from './dashboard.model';
+import { RecentList } from './components/RecentList/RecentList';
+import { RegistrationSheet, type RegistrationInput } from './components/RegistrationSheet/RegistrationSheet';
 
 /** Props of `DashboardScreen`. */
 export interface DashboardScreenProps {

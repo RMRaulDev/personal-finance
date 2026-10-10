@@ -1,9 +1,9 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { request } from './client';
-import type { AccountSummary, CategorySummary, IsoDate } from './common';
-import { invalidateMoneyMovement } from './invalidation';
-import { queryKeys } from './queryClient';
+import { request } from './client/client';
+import type { AccountSummary, CategorySummary, IsoDate } from './resources/common/types';
+import { invalidateMoneyMovement } from './client/invalidation';
+import { queryKeys } from './client/queryClient';
 
 // The obligations resource: `/api/v1/obligations` and their occurrences (`entry.web.obligation`).
 

@@ -6,7 +6,7 @@ export {
   type CategoryStatus,
   type CategoryType,
 } from './categories';
-export type * from './common';
+export type * from './resources/common/types';
 export {
   dashboardQuery,
   getDashboard,
@@ -20,8 +20,8 @@ export {
   type RecentActivityItem,
   type ShortfallItem,
   type UpcomingCommitment,
-} from './dashboard';
-export { ApiError, isApiError, type ApiFailureKind, type BusinessRuleCode } from './errors';
+} from './resources/dashboard/types';
+export { ApiError, isApiError, type ApiFailureKind, type BusinessRuleCode } from './client/errors';
 export {
   listObligations,
   obligationsQuery,
@@ -43,10 +43,10 @@ export {
   type RegisterOperationRequest,
   type RegisterOperationResponse,
 } from './operations';
-export { queryClient, queryKeys } from './queryClient';
+export { queryClient, queryKeys } from './client/queryClient';
 export {
   completeInitialSetup,
   useCompleteInitialSetup,
   type CompleteInitialSetupRequest,
   type CompleteInitialSetupResponse,
-} from './setup';
+} from './resources/setup/mutations';

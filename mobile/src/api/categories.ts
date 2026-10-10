@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { request } from './client';
-import { queryKeys } from './queryClient';
+import { request } from './client/client';
+import { queryKeys } from './client/queryClient';
 
 // The categories resource: `/api/v1/categories` (`entry.web.category`).
 
