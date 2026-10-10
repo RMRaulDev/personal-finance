@@ -9,9 +9,10 @@ import { formatAmountInput, parseAmountInput } from '../../lib';
 import { useMutationLock } from '../../shared';
 
 import { OnboardingStep } from './components/OnboardingStep';
-import { PreparationView, usePreparation } from './components/PreparationView';
+import { PreparationView } from './components/PreparationView';
 import { SetupErrorView } from './components/SetupErrorView';
 import { createOnboardingScreenStyles } from './OnboardingScreen.styles';
+import { usePreparation } from './usePreparation';
 import {
   ACCOUNT_NAME_MAX_LENGTH,
   balanceFeedback,

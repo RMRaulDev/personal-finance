@@ -85,9 +85,11 @@ export async function request<T>(method: HttpMethod, path: string, body?: unknow
   }
 
   if (response.status === 204) {
-    // Actions answer 204 without a body; their callers expect `void`.
+    // Actions answer 204 without a body; their callers expect `void`. The cast is safe because
+    // only requests typed as `void` get a 204, so no caller reads a value that is not there.
     return undefined as T;
   }
   // The body is trusted to match T: there is no runtime validation by design (mobile.md → API client).
+  // The cast is safe because T is the type the endpoint documents; nothing here can check it.
   return (await response.json()) as T;
 }

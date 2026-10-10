@@ -149,6 +149,7 @@ function roleColors(scheme: ColorScheme): Record<Role, RoleColors> {
     };
     return [role, colors] as const;
   });
+  // Safe cast: `entries` has one pair per member of `roles`, so every Role key is present once.
   return Object.fromEntries(entries) as Record<Role, RoleColors>;
 }
 
