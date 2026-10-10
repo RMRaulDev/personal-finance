@@ -34,14 +34,15 @@ public final class JdbcAccountRepository implements AccountRepository {
     public Account create(Account account) {
         Objects.requireNonNull(account, "Account cannot be null");
 
-        String sql = "INSERT INTO accounts (id, user_id, name, balance, status) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO accounts (id, user_id, name, opening_balance, balance, status) VALUES (?, ?, ?, ?, ?, ?)";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, account.id().toString());
             statement.setString(2, account.userId().toString());
             statement.setString(3, account.name());
-            statement.setLong(4, toCents(account.balance()));
-            statement.setString(5, account.status().name());
+            statement.setLong(4, toCents(account.openingBalance()));
+            statement.setLong(5, toCents(account.balance()));
+            statement.setString(6, account.status().name());
             statement.executeUpdate();
         } catch (SQLException e) {
             if (SqliteConstraintViolations.isUniqueViolation(e, DUPLICATE_NAME_CONSTRAINT_COLUMNS)) {
@@ -58,7 +59,7 @@ public final class JdbcAccountRepository implements AccountRepository {
     public Optional<Account> findById(UUID id) {
         Objects.requireNonNull(id, "Account id cannot be null");
 
-        String sql = "SELECT id, user_id, name, balance, status FROM accounts WHERE id = ?";
+        String sql = "SELECT id, user_id, name, opening_balance, balance, status FROM accounts WHERE id = ?";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, id.toString());
@@ -78,7 +79,7 @@ public final class JdbcAccountRepository implements AccountRepository {
         Objects.requireNonNull(id, "Account id cannot be null");
         Objects.requireNonNull(userId, "User id cannot be null");
 
-        String sql = "SELECT id, user_id, name, balance, status FROM accounts WHERE id = ? AND user_id = ?";
+        String sql = "SELECT id, user_id, name, opening_balance, balance, status FROM accounts WHERE id = ? AND user_id = ?";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, id.toString());
@@ -98,7 +99,7 @@ public final class JdbcAccountRepository implements AccountRepository {
     public List<Account> findByUserId(UUID userId) {
         Objects.requireNonNull(userId, "User id cannot be null");
 
-        String sql = "SELECT id, user_id, name, balance, status FROM accounts WHERE user_id = ?";
+        String sql = "SELECT id, user_id, name, opening_balance, balance, status FROM accounts WHERE user_id = ?";
         Connection connection = connectionHolder.get();
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, userId.toString());
@@ -161,11 +162,15 @@ public final class JdbcAccountRepository implements AccountRepository {
             UUID id = UUID.fromString(resultSet.getString("id"));
             UUID userId = UUID.fromString(resultSet.getString("user_id"));
             String name = resultSet.getString("name");
-            Account account = new Account(id, userId, name);
+            Money openingBalance = Money.ofCents(resultSet.getLong("opening_balance"));
+            Account account = new Account(id, userId, name, openingBalance);
 
             Money balance = Money.ofCents(resultSet.getLong("balance"));
-            if (balance.isPositive()) {
-                account.credit(balance);
+            int comparison = balance.compareTo(openingBalance);
+            if (comparison > 0) {
+                account.credit(balance.subtract(openingBalance));
+            } else if (comparison < 0) {
+                account.debit(openingBalance.subtract(balance));
             }
 
             AccountStatus status = AccountStatus.valueOf(resultSet.getString("status"));

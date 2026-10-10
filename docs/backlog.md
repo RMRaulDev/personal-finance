@@ -121,3 +121,15 @@ Cada cambio de comportamiento sigue el flujo completo de agentes de `CLAUDE.md` 
 
 - **Hoy:** si el cliente manda como `operationDate` la fecha del dispositivo, y el backend calcula el dashboard con `personal-finance.time-zone`. Cerca de medianoche, o con el teléfono en otra zona, pueden no coincidir.
 - **Qué hacer:** incluir `today` en la respuesta del dashboard (el cliente ya recibe `horizon.from`, que hoy coincide con hoy, pero no es un contrato explícito), o permitir omitir `operationDate` en los registros para que el servidor use su fecha. Se relaciona con el punto 1 (fechas futuras).
+
+## 10. Tests pendientes del saldo inicial de las cuentas
+
+**Situación:** la rama `feature/account-opening-balance` agregó el saldo inicial inmutable de las cuentas (`accounts.opening_balance`, migración `002-account-opening-balance.sql`) y `POST /api/v1/setup` (`CompleteInitialSetup`) para el onboarding móvil: crea la primera cuenta y las 14 categorías por defecto en una transacción, y responde 409 `INITIAL_SETUP_ALREADY_COMPLETED` si el usuario ya tiene cuentas o categorías. El desarrollador aplazó los tests de este cambio.
+
+**Qué hacer:** escribir, con el agente `test-writer`:
+- Dominio: `Account` con saldo inicial (saldo = saldo inicial, 0 válido, negativo rechazado).
+- `CreateAccountRequest`: `openingBalanceCents` nulo (0) y negativo (400).
+- Unit tests de `CompleteInitialSetup` (cuenta y 14 categorías, 409 con cuenta o categoría de cualquier estado, atomicidad).
+- JDBC: ida y vuelta de `opening_balance`, `mapRow` (reconstrucción del saldo respecto al saldo inicial) y el `CHECK (opening_balance >= 0)`.
+- `SetupControllerTest` (201 con `Location`, 400 por campos faltantes o negativo, 409).
+- `AccountControllerTest`: crear con saldo inicial y forma de `AccountResponse`.

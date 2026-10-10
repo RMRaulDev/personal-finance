@@ -21,7 +21,8 @@ Infrastructure implements the contracts (ports) defined by the Application layer
 Each business capability is represented by a dedicated use case class in `com.rauldev.personalfinance.application.usecase`:
 
 ### Command Use Cases (Write Side)
-* `CreateAccount`: Creates a new account for a user (`balance = 0`, `ACTIVE`).
+* `CreateAccount`: Creates a new account for a user (`ACTIVE`, `balance` starts at the immutable opening balance of `CreateAccountCommand`, which is zero when omitted; the opening balance is not an operation).
+* `CompleteInitialSetup`: Creates the user's first account (with its opening balance) and the 14 default categories (`CompleteInitialSetup.DEFAULT_CATEGORIES`: 9 `EXPENSE` and 5 `INCOME`, all `ACTIVE`) in a single transaction. It requires the user to have no accounts and no categories, in any status; otherwise it throws `BusinessRuleViolationException` (`INITIAL_SETUP_ALREADY_COMPLETED`), which also makes a retry create nothing twice. Returns the account id.
 * `ModifyAccount`: Renames an account (`ModifyAccountCommand` carries only `userId`, `accountId`, and `name`). No use case activates or deactivates accounts or categories.
 * `CreateCategory`: Creates a new category (`INCOME` or `EXPENSE`, `ACTIVE`).
 * `RegisterIncome`: Registers an income operation and credits the account balance.
@@ -92,7 +93,7 @@ Output ports in `com.rauldev.personalfinance.application.port.out` define infras
 
 Query use cases return dedicated CQRS read model projections (`com.rauldev.personalfinance.application.readmodel`), bypassing domain aggregate reconstruction:
 
-* `AccountDetails`: `(UUID id, UUID userId, String name, Money balance, AccountStatus status)`
+* `AccountDetails`: `(UUID id, UUID userId, String name, Money balance, AccountStatus status, Money openingBalance)`
 * `CategoryDetails`: `(UUID id, String name, CategoryType type, CategoryStatus status)`; all required ("Category id cannot be null", "Category name cannot be null", "Category type cannot be null", "Category status cannot be null") and the name cannot be blank ("Category name cannot be empty").
 * `AccountSummary`: `(UUID id, String name)`
 * `CategorySummary`: `(UUID id, String name)`
@@ -135,7 +136,7 @@ Query use cases return dedicated CQRS read model projections (`com.rauldev.perso
 
 ## Application DTOs & Commands
 
-* Command Objects: `CreateAccountCommand`, `ModifyAccountCommand`, `CreateCategoryCommand`, `RegisterIncomeCommand`, `RegisterExpenseCommand`, `RegisterTransferCommand`, `CancelOperationCommand`, `CreateObligationCommand`, `ModifyObligationCommand`, `ArchiveObligationCommand`, `PayOccurrenceCommand`, `SkipOccurrenceCommand`, `SkipOverdueOccurrencesCommand`, `ReopenOccurrenceCommand`.
+* Command Objects: `CreateAccountCommand`, `CompleteInitialSetupCommand`, `ModifyAccountCommand`, `CreateCategoryCommand`, `RegisterIncomeCommand`, `RegisterExpenseCommand`, `RegisterTransferCommand`, `CancelOperationCommand`, `CreateObligationCommand`, `ModifyObligationCommand`, `ArchiveObligationCommand`, `PayOccurrenceCommand`, `SkipOccurrenceCommand`, `SkipOverdueOccurrencesCommand`, `ReopenOccurrenceCommand`.
 * Query Objects: `GetAccountQuery`, `ListAccountsQuery`, `ListCategoriesQuery`, `ListObligationsQuery`, `GetObligationQuery`, `GetOperationDetailsQuery`, `GetDashboardQuery`, `OperationSearchCriteria`.
 
 ---
@@ -146,7 +147,7 @@ Application use cases expose meaningful, application-level exceptions:
 
 * `ResourceNotFoundException`: Thrown when a requested account, category, operation, or obligation does not exist or does not belong to the user (including the account and category loaded by `ExpenseRegistration`, so by `RegisterExpense` and `PayOccurrence`, and the obligation of `PayOccurrence`), and by `ReopenOccurrence` when the occurrence has no resolution.
 * `IllegalArgumentException`: Invalid input.
-* `BusinessRuleViolationException` (`domain`): A business rule violated against stored state. Besides the domain (including "already cancelled", which `CancelOperation` gets by calling `ensureCancellable()`), it is thrown by `CreateAccount`, `ModifyAccount`, `CreateCategory`, `CreateObligation`, `ModifyObligation` (duplicate names), `SkipOccurrence` and `PayOccurrence` (`OCCURRENCE_ALREADY_RESOLVED` pre-check), and by `JdbcAccountRepository` / `JdbcCategoryRepository` / `JdbcObligationRepository` for concurrent duplicate names and by `JdbcOccurrenceResolutionRepository` for a concurrent resolution of the same occurrence. See `domain.md` → Business Rule Violations.
+* `BusinessRuleViolationException` (`domain`): A business rule violated against stored state. Besides the domain (including "already cancelled", which `CancelOperation` gets by calling `ensureCancellable()`), it is thrown by `CompleteInitialSetup` (`INITIAL_SETUP_ALREADY_COMPLETED`), `CreateAccount`, `ModifyAccount`, `CreateCategory`, `CreateObligation`, `ModifyObligation` (duplicate names), `SkipOccurrence` and `PayOccurrence` (`OCCURRENCE_ALREADY_RESOLVED` pre-check), and by `JdbcAccountRepository` / `JdbcCategoryRepository` / `JdbcObligationRepository` for concurrent duplicate names and by `JdbcOccurrenceResolutionRepository` for a concurrent resolution of the same occurrence. See `domain.md` → Business Rule Violations.
 * `IllegalStateException`: Technical faults only (command repository used outside a transaction, nested transaction). The entry layer's `SingleUserNotProvisionedException` (a subclass) is a configuration fault: the configured single user does not exist in the database; it maps to 500 with the message hidden. `GetDashboard` also throws it ("Dashboard data is inconsistent: ...", original `IllegalArgumentException` kept as cause) when `CommitmentCalculator` rejects a missing account or category reference, which can only come from corrupt or cross-user data; it maps to 500.
 * Infrastructure exceptions (e.g. `SQLException`) are caught and wrapped inside Infrastructure adapters; they never leak into the Application layer. The exception is a `UNIQUE(user_id, name)` violation on accounts, categories, or obligations, and a `UNIQUE(obligation_id, due_date)` violation on occurrence resolutions, which the adapters translate into `BusinessRuleViolationException` (`*_NAME_ALREADY_EXISTS`, `OCCURRENCE_ALREADY_RESOLVED`) keeping the `SQLException` as cause. Other constraint violations (`UNIQUE(expense_id)`, `CHECK`, foreign keys) are not translated. The messages are shared through `ApplicationConstants`.
 * `CorruptedPersistedDataException` (`infrastructure.persistence`): Thrown by adapters when a stored row cannot be mapped to a domain object or read model. It is a server fault, never a client error, and does not extend `IllegalArgumentException`.

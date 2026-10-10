@@ -6,12 +6,13 @@ CREATE TABLE users (
 );
 
 CREATE TABLE accounts (
-    id         TEXT    PRIMARY KEY NOT NULL,
-    user_id    TEXT    NOT NULL,
-    name       TEXT    NOT NULL,
-    balance    INTEGER NOT NULL    DEFAULT 0 CHECK (balance >= 0),
-    status     TEXT    NOT NULL,
-    created_at TEXT    NOT NULL    DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    id              TEXT    PRIMARY KEY NOT NULL,
+    user_id         TEXT    NOT NULL,
+    name            TEXT    NOT NULL,
+    opening_balance INTEGER NOT NULL    DEFAULT 0 CHECK (opening_balance >= 0),
+    balance         INTEGER NOT NULL    DEFAULT 0 CHECK (balance >= 0),
+    status          TEXT    NOT NULL,
+    created_at      TEXT    NOT NULL    DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
 
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     UNIQUE (user_id, name)
