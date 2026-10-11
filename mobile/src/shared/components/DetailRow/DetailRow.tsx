@@ -10,6 +10,11 @@ export interface DetailRowProps {
   value: string;
   /** Fixed-width digits, for an amount. Defaults to false. */
   tabular?: boolean;
+  /**
+   * Shows the value in secondary text at regular weight, for facts that cannot be changed right now
+   * (e.g. a locked form). Defaults to false.
+   */
+  muted?: boolean;
 }
 
 /**
@@ -17,7 +22,7 @@ export interface DetailRowProps {
  * the value emphasized on the right. It has no padding or border of its own, so the caller places
  * it (inside a `ListGroup` row, under a divider, ...).
  */
-export function DetailRow({ label, value, tabular = false }: DetailRowProps) {
+export function DetailRow({ label, value, tabular = false, muted = false }: DetailRowProps) {
   const styles = useThemedStyles(createDetailRowStyles);
 
   return (
@@ -25,7 +30,13 @@ export function DetailRow({ label, value, tabular = false }: DetailRowProps) {
       <Text variant="body-sm" color="secondary">
         {label}
       </Text>
-      <Text variant="body-sm" weight={500} tabular={tabular} style={styles.value}>
+      <Text
+        variant="body-sm"
+        weight={muted ? 400 : 500}
+        color={muted ? 'secondary' : 'primary'}
+        tabular={tabular}
+        style={styles.value}
+      >
         {value}
       </Text>
     </View>

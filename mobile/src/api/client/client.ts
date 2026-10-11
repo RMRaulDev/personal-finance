@@ -1,7 +1,7 @@
 import { ApiError } from './errors';
 
 /** HTTP methods the API uses. */
-type HttpMethod = 'GET' | 'POST';
+type HttpMethod = 'GET' | 'POST' | 'PATCH';
 
 const API_PREFIX = '/api/v1';
 

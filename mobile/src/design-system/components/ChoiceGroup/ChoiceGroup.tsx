@@ -17,6 +17,12 @@ export interface ChoiceOption<T extends string> {
 export interface ChoiceGroupProps<T extends string> {
   /** Visible label; also the radio group's accessible name. */
   label: string;
+  /**
+   * Hides the label while keeping it as the radio group's accessible name, for chips that sit
+   * under a control that already has a visible label (e.g. the quick dates of `DateField`).
+   * Defaults to false.
+   */
+  labelHidden?: boolean;
   /** Up to 12 options, in the order they are shown. */
   options: ChoiceOption<T>[];
   /** Selected value, or null when nothing is selected. */
@@ -35,6 +41,7 @@ export interface ChoiceGroupProps<T extends string> {
  */
 export function ChoiceGroup<T extends string>({
   label,
+  labelHidden = false,
   options,
   value,
   onChange,
@@ -45,9 +52,11 @@ export function ChoiceGroup<T extends string>({
 
   return (
     <View style={styles.group}>
-      <Text variant="body-sm" weight={500}>
-        {label}
-      </Text>
+      {!labelHidden && (
+        <Text variant="body-sm" weight={500}>
+          {label}
+        </Text>
+      )}
       <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.chips}>
         {options.map((option) => {
           const selected = option.value === value;

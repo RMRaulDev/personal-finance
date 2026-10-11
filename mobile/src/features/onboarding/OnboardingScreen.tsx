@@ -6,13 +6,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useCompleteInitialSetup } from '../../api';
 import { AmountField, Button, Field, Root, useThemedStyles } from '../../design-system';
 import { formatAmountInput, parseAmountInput } from '../../lib';
-import { useMutationLock } from '../../shared';
+import { useDelayedIndicator, useMutationLock } from '../../shared';
 
 import { OnboardingStep } from './components/OnboardingStep';
 import { PreparationView } from './components/PreparationView';
 import { SetupErrorView } from './components/SetupErrorView';
 import { createOnboardingScreenStyles } from './OnboardingScreen.styles';
-import { usePreparation } from './usePreparation';
 import {
   ACCOUNT_NAME_MAX_LENGTH,
   balanceFeedback,
@@ -49,7 +48,8 @@ export function OnboardingScreen({ onDone }: OnboardingScreenProps) {
   const setup = useCompleteInitialSetup();
   // The setup is a mutation like any other: one at a time, and its buttons inactive meanwhile.
   const lock = useMutationLock();
-  const preparation = usePreparation();
+  // The preparation screen: shown only if the setup outlasts the delay, then kept the minimum time.
+  const preparation = useDelayedIndicator();
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState(DEFAULT_ACCOUNT_NAME);
   const [nameError, setNameError] = useState<string | undefined>(undefined);

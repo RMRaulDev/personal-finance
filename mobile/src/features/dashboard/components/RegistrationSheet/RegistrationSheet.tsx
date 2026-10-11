@@ -1,26 +1,12 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 import type { AccountResponse } from '../../../../api';
-import {
-  AmountField,
-  Button,
-  ChoiceGroup,
-  space,
-  Text,
-  useThemedStyles,
-  type ChoiceOption,
-} from '../../../../design-system';
+import { AmountField, Button, ChoiceGroup, Text, useThemedStyles, type ChoiceOption } from '../../../../design-system';
 import { formatAmountInput, parseAmountInput } from '../../../../lib';
-import { DetailRow, useKeyboardVisible } from '../../../../shared';
+import { accountOptions, BottomSheet, DetailRow } from '../../../../shared';
 
-import {
-  accountOptions,
-  AMOUNT_REQUIRED_ERROR,
-  registrationTitle,
-  type RegistrationType,
-} from './RegistrationSheet.model';
+import { AMOUNT_REQUIRED_ERROR, registrationTitle, type RegistrationType } from './RegistrationSheet.model';
 import { createRegistrationSheetStyles } from './RegistrationSheet.styles';
 
 /** What the sheet hands over on "Guardar", already validated. */
@@ -74,8 +60,6 @@ export function RegistrationSheet({
   onClose,
 }: RegistrationSheetProps) {
   const styles = useThemedStyles(createRegistrationSheetStyles);
-  const insets = useSafeAreaInsets();
-  const keyboardVisible = useKeyboardVisible();
   const [amount, setAmount] = useState('');
   const [amountSubmitted, setAmountSubmitted] = useState(false);
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -107,78 +91,55 @@ export function RegistrationSheet({
   }
 
   return (
-    <Modal
-      visible
-      transparent
-      animationType="fade"
-      onRequestClose={close}
-      // Android: draw under the status and navigation bars, so the backdrop covers the whole screen.
-      statusBarTranslucent
-      navigationBarTranslucent
-    >
-      <KeyboardAvoidingView behavior="padding" style={styles.container}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={close} style={styles.backdrop} />
-        <View accessibilityViewIsModal aria-label={title} style={styles.sheet}>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[
-              styles.content,
-              // Above the keyboard the bottom safe area is covered, so its inset would only add a gap.
-              { paddingBottom: space[8] + (keyboardVisible ? 0 : insets.bottom) },
-            ]}
-          >
-            <View accessibilityElementsHidden importantForAccessibility="no" style={styles.handle} />
-            <Text variant="heading" accessibilityRole="header">
-              {title}
-            </Text>
-            <AmountField
-              label="Importe"
-              value={amount}
-              onChangeText={(text) => {
-                setAmount(formatAmountInput(text));
-                setAmountSubmitted(false);
-                onDismissError();
-              }}
-              autoFocus
-              error={amountError}
-            />
-            {categories.length > 0 && (
-              <ChoiceGroup
-                label="Categoría (opcional)"
-                options={categories}
-                value={categoryId}
-                onChange={setCategoryId}
-                allowDeselect
-              />
-            )}
-            {accounts.length === 1 && accounts[0] && (
-              // The only active account is a fact, not a choice: shown under a divider.
-              <View style={styles.accountFact}>
-                <DetailRow label="Cuenta" value={accounts[0].name} />
-              </View>
-            )}
-            {accounts.length > 1 && (
-              <ChoiceGroup
-                label="Cuenta"
-                options={accountOptions(accounts)}
-                value={accountId ?? null}
-                // Without `allowDeselect` the value is never null; keep the current one if it were.
-                onChange={(value) => setPickedAccountId(value ?? accountId)}
-              />
-            )}
-            <View style={styles.actions}>
-              <Button variant="ghost" size="lg" inactive={saving} onPress={close}>
-                Cancelar
-              </Button>
-              <View style={styles.primarySlot}>
-                <Button variant="primary" size="lg" fullWidth inactive={saving} onPress={save}>
-                  Guardar
-                </Button>
-              </View>
-            </View>
-          </ScrollView>
+    <BottomSheet label={title} onClose={close}>
+      <Text variant="heading" accessibilityRole="header">
+        {title}
+      </Text>
+      <AmountField
+        label="Importe"
+        value={amount}
+        onChangeText={(text) => {
+          setAmount(formatAmountInput(text));
+          setAmountSubmitted(false);
+          onDismissError();
+        }}
+        autoFocus
+        error={amountError}
+      />
+      {categories.length > 0 && (
+        <ChoiceGroup
+          label="Categoría (opcional)"
+          options={categories}
+          value={categoryId}
+          onChange={setCategoryId}
+          allowDeselect
+        />
+      )}
+      {accounts.length === 1 && accounts[0] && (
+        // The only active account is a fact, not a choice: shown under a divider.
+        <View style={styles.accountFact}>
+          <DetailRow label="Cuenta" value={accounts[0].name} />
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      )}
+      {accounts.length > 1 && (
+        <ChoiceGroup
+          label="Cuenta"
+          options={accountOptions(accounts)}
+          value={accountId ?? null}
+          // Without `allowDeselect` the value is never null; keep the current one if it were.
+          onChange={(value) => setPickedAccountId(value ?? accountId)}
+        />
+      )}
+      <View style={styles.actions}>
+        <Button variant="ghost" size="lg" inactive={saving} onPress={close}>
+          Cancelar
+        </Button>
+        <View style={styles.primarySlot}>
+          <Button variant="primary" size="lg" fullWidth inactive={saving} onPress={save}>
+            Guardar
+          </Button>
+        </View>
+      </View>
+    </BottomSheet>
   );
 }

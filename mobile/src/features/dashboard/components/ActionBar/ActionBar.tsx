@@ -1,7 +1,7 @@
 import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, space, useThemedStyles } from '../../../../design-system';
+import { Button, useThemedStyles } from '../../../../design-system';
+import { BottomBar } from '../../../../shared';
 
 import { createActionBarStyles } from './ActionBar.styles';
 
@@ -19,10 +19,9 @@ export interface ActionBarProps {
  */
 export function ActionBar({ onIncome, onExpense }: ActionBarProps) {
   const styles = useThemedStyles(createActionBarStyles);
-  const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.bar, { paddingBottom: space[8] + insets.bottom }]}>
+    <BottomBar>
       <Button variant="ghost" accessibilityLabel="Registrar ingreso" onPress={onIncome}>
         Ingreso
       </Button>
@@ -32,6 +31,6 @@ export function ActionBar({ onIncome, onExpense }: ActionBarProps) {
           + Gasto
         </Button>
       </View>
-    </View>
+    </BottomBar>
   );
 }
