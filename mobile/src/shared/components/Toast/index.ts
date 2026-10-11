@@ -1,2 +1,9 @@
-export { Toast, type ToastProps } from './Toast';
-export { useToast, type ToastAction, type ToastMessage } from './useToast';
+export { ToastOutlet, type ToastOutletProps } from './ToastOutlet';
+export {
+  ToastProvider,
+  type ToastAction,
+  type ToastMessage,
+  type ToastProviderProps,
+  type ToastState,
+} from './ToastProvider';
+export { useToast } from './useToast';

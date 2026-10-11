@@ -11,10 +11,16 @@ interface CommitmentItemProps {
   row: CommitmentRow;
   payPending: boolean;
   onPay: (row: CommitmentRow) => void;
+  /** Opens the obligation's detail, for a row whose payment is blocked. */
+  onReview: (row: CommitmentRow) => void;
 }
 
-/** One commitment: name and date, amount, and the "Pagar" button. `ListGroup` draws the dividers. */
-export function CommitmentItem({ row, payPending, onPay }: CommitmentItemProps) {
+/**
+ * One commitment: name and date, amount, and "Pagar" (one tap, with the obligation's defaults). A
+ * blocked payment shows "Revisar" instead, which opens the detail to pay with another account or
+ * category, or to edit it. `ListGroup` draws the dividers.
+ */
+export function CommitmentItem({ row, payPending, onPay, onReview }: CommitmentItemProps) {
   const styles = useThemedStyles(createCommitmentItemStyles);
   const amount = formatMoney(row.amountCents);
 
@@ -31,14 +37,20 @@ export function CommitmentItem({ row, payPending, onPay }: CommitmentItemProps) 
       <Text tabular weight={500}>
         {amount}
       </Text>
-      <Button
-        size="sm"
-        inactive={row.blocked || payPending}
-        accessibilityLabel={`Pagar ${row.name}, ${amount}`}
-        onPress={() => onPay(row)}
-      >
-        Pagar
-      </Button>
+      {row.blocked ? (
+        <Button size="sm" accessibilityLabel={`Revisar ${row.name}`} onPress={() => onReview(row)}>
+          Revisar
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          inactive={payPending}
+          accessibilityLabel={`Pagar ${row.name}, ${amount}`}
+          onPress={() => onPay(row)}
+        >
+          Pagar
+        </Button>
+      )}
     </View>
   );
 }

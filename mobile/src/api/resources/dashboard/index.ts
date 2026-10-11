@@ -1,5 +1,5 @@
 export { getDashboard } from './endpoints';
-export { dashboardQuery } from './queries';
+export { dashboardQuery, horizonQuery } from './queries';
 export type {
   AccountShortfallItem,
   AttentionItem,

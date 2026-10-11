@@ -90,3 +90,13 @@ export function parseAmountInput(text: string): ParsedAmount {
   // At most 11 digits, so the result stays far below Number.MAX_SAFE_INTEGER.
   return { kind: 'ok', cents: pesos * CENTS_PER_PESO + cents };
 }
+
+/**
+ * Text an amount field starts with for an amount in integer cents: `480000` → `"4,800"`, `480050` →
+ * `"4,800.50"`. Integer math only.
+ */
+export function amountInputFromCents(cents: number): string {
+  const pesos = Math.trunc(cents / CENTS_PER_PESO);
+  const rest = cents % CENTS_PER_PESO;
+  return formatAmountInput(rest === 0 ? String(pesos) : `${pesos}.${String(rest).padStart(2, '0')}`);
+}

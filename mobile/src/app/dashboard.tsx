@@ -9,7 +9,7 @@ import { DashboardScreen } from '../features/dashboard';
  */
 type DashboardParams = { accountName?: string };
 
-/** Dashboard route: the home screen. */
+/** Dashboard route: the home screen, and the way into the obligations. */
 export default function DashboardRoute() {
   const { accountName } = useLocalSearchParams<DashboardParams>();
   return (
@@ -17,6 +17,10 @@ export default function DashboardRoute() {
       arrivalAccountName={accountName}
       // Drop the param once its toast is shown, so a remount does not show it again.
       onArrivalShown={() => router.setParams({ accountName: undefined })}
+      onOpenObligations={() => router.push('/obligations')}
+      onAddObligation={() => router.push('/obligations/new')}
+      // `from` makes the detail's back button read "‹ Inicio", where it returns.
+      onOpenObligation={(id) => router.push({ pathname: '/obligations/[id]', params: { id, from: 'dashboard' } })}
     />
   );
 }

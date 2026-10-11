@@ -15,11 +15,14 @@ import {
 import { space, Text, useThemedStyles } from '../../design-system';
 import { formatLongDate } from '../../lib';
 import {
+  ACCOUNTS_NOT_LOADED_ERROR,
+  activeAccounts,
+  categoryOptions,
   errorMessage,
   Screen,
   ScreenError,
   ScreenLoading,
-  Toast,
+  ToastOutlet,
   useMutationLock,
   useRefresh,
   useToast,
@@ -31,9 +34,6 @@ import { AvailableSummary } from './components/AvailableSummary';
 import { CommitmentList } from './components/CommitmentList';
 import { RecentList } from './components/RecentList';
 import {
-  ACCOUNTS_NOT_LOADED_ERROR,
-  activeAccounts,
-  categoryOptions,
   defaultAccountId,
   NO_ACTIVE_ACCOUNT_ERROR,
   RegistrationSheet,
@@ -47,7 +47,7 @@ import {
   arrivalToastText,
   commitmentRows,
   extraNoticesText,
-  hasAnyObligation,
+  obligationCounts,
   horizonDays,
   horizonLabel,
   paidToastText,
@@ -68,17 +68,30 @@ export interface DashboardScreenProps {
    * (e.g. after the app is restored) does not show it again.
    */
   onArrivalShown?: () => void;
+  /** Opens the obligations list ("Ver todos los compromisos"). */
+  onOpenObligations: () => void;
+  /** Opens the form to add an obligation (the new-user invite). */
+  onAddObligation: () => void;
+  /** Opens an obligation's detail ("Revisar" on a blocked payment). */
+  onOpenObligation: (obligationId: string) => void;
 }
 
 /**
  * Home screen ("¿qué hago ahora?"): how much is available to spend, the commitments due in the
- * horizon with a "Pagar" action, the latest operations, and the bottom bar that opens the
- * registration sheet ("Ingreso", "+ Gasto"). "Transferir" stays hidden until it has a design.
+ * horizon with a "Pagar" action (or "Revisar" when blocked) and the way into the obligations, the
+ * latest operations, and the bottom bar that opens the registration sheet ("Ingreso", "+ Gasto").
+ * "Transferir" stays hidden until it has a design.
  */
-export function DashboardScreen({ arrivalAccountName, onArrivalShown }: DashboardScreenProps) {
+export function DashboardScreen({
+  arrivalAccountName,
+  onArrivalShown,
+  onOpenObligations,
+  onAddObligation,
+  onOpenObligation,
+}: DashboardScreenProps) {
   const styles = useThemedStyles(createDashboardScreenStyles);
   const dashboard = useQuery(dashboardQuery());
-  const hasObligations = useQuery({ ...obligationsQuery(), select: hasAnyObligation });
+  const obligations = useQuery({ ...obligationsQuery(), select: obligationCounts });
   // Loaded with the dashboard so the sheet opens with its choices ready.
   const accounts = useQuery(accountsQuery());
   const categories = useQuery(categoriesQuery());
@@ -86,13 +99,13 @@ export function DashboardScreen({ arrivalAccountName, onArrivalShown }: Dashboar
   const cancel = useCancelOperation();
   const registerExpense = useRegisterExpense();
   const registerIncome = useRegisterIncome();
-  const { toast, show, hide } = useToast();
+  const { show } = useToast();
   // Only one payment, undo, or registration runs at a time; their buttons stay inactive meanwhile.
   const lock = useMutationLock();
   const [sheet, setSheet] = useState<RegistrationType | null>(null);
   const [sheetError, setSheetError] = useState<string | undefined>(undefined);
   const { refreshing, refresh } = useRefresh(
-    [dashboard.refetch, hasObligations.refetch, accounts.refetch, categories.refetch],
+    [dashboard.refetch, obligations.refetch, accounts.refetch, categories.refetch],
     (error) => show(errorMessage(error)),
   );
 
@@ -211,7 +224,7 @@ export function DashboardScreen({ arrivalAccountName, onArrivalShown }: Dashboar
       overlay={
         <>
           {/* 20px above the action bar: the design's 112px from the bottom minus its 92px bar. */}
-          {toast && <Toast toast={toast} onDismiss={hide} bottom={space[5]} />}
+          <ToastOutlet bottom={space[5]} />
           {sheet && (
             <RegistrationSheet
               type={sheet}
@@ -245,9 +258,13 @@ export function DashboardScreen({ arrivalAccountName, onArrivalShown }: Dashboar
         committedCents={data.availableToSpend.committedCents}
         days={days}
         // Until the obligations load, assume they exist so the new-user invite does not flash.
-        hasObligations={hasObligations.data ?? true}
+        hasObligations={obligations.data === undefined || obligations.data.total > 0}
+        activeCount={obligations.data !== undefined && obligations.data.total > 0 ? obligations.data.active : undefined}
         payPending={lock.locked}
         onPay={payRow}
+        onReview={(row) => onOpenObligation(row.obligationId)}
+        onViewAll={onOpenObligations}
+        onAddObligation={onAddObligation}
       />
 
       <RecentList operations={recentOperations(data)} today={data.horizon.from} />

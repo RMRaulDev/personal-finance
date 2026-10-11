@@ -42,10 +42,10 @@ mobile/
   .env.example           Template for .env.local (EXPO_PUBLIC_API_URL)
   src/
     app/                 Routes (Expo Router). Thin screens that only compose features
-    features/<feature>/  One folder per product area: <Feature>Screen.tsx, components/, <feature>.model.ts
-    shared/              App code that any feature can reuse: components/, hooks/, errors/
+    features/<feature>/  One folder per product area: its screens, components/, <feature>.model.ts
+    shared/              App code that any feature can reuse: components/, hooks/, choices/, errors/
     api/                 client/ (HTTP client, ApiError, query client, invalidation) and resources/<resource>/
-    lib/                 Pure helpers grouped by topic: money/, dates/
+    lib/                 Pure helpers grouped by topic: money/, dates/, recurrence/
     design-system/       tokens/, theme/, and components/ (see Design System)
 ```
 
@@ -55,14 +55,19 @@ Inside every layer, files are **grouped by unit**: a component, together with ev
 design-system/
   tokens/        colors.ts · typography.ts · spacing.ts · index.ts
   theme/         ThemeProvider.tsx · useTheme.ts · useThemedStyles.ts · DesignSystemProvider.tsx · focusRing.ts · index.ts
-  components/    Button/ (Button.tsx · Button.styles.ts · index.ts), Field/, AmountField/, ChoiceGroup/, …
+  components/    Button/ (Button.tsx · Button.styles.ts · index.ts), Field/, AmountField/, ChoiceGroup/, DatePickerSheet/ (… · DatePickerSheet.model.ts), …
 shared/
-  components/    Screen/, Toast/ (Toast.tsx · useToast.ts · …), OperationRow/, ListGroup/, Notice/, DetailRow/, SectionTitle/
-  hooks/         useMutationLock.ts · useRefresh.ts · useKeyboardVisible.ts
+  components/    Screen/, BackHeader/, LoadState/, Toast/ (Toast.tsx · ToastProvider.tsx · ToastOutlet.tsx · useToast.ts · …), BottomSheet/, BottomBar/, OperationRow/, ListGroup/, Notice/, DetailRow/, SectionTitle/
+  hooks/         useMutationLock.ts · useRefresh.ts · useKeyboardVisible.ts · useDelayedIndicator.ts · useDelayedLoading.ts · useIsMounted.ts
+  choices/       choiceOptions.ts
   errors/        errorMessage.ts
-features/dashboard/
+features/dashboard/                    a feature with one screen
   DashboardScreen.tsx · DashboardScreen.styles.ts · dashboard.model.ts · index.ts
   components/    AvailableSummary/, CommitmentList/, RegistrationSheet/ (RegistrationSheet.tsx · .styles.ts · .model.ts · index.ts), …
+features/obligations/                  a feature with several screens
+  ObligationsListScreen/ · ObligationDetailScreen/ · ObligationFormScreen/   each a unit folder (Screen.tsx · .styles.ts · .model.ts · index.ts)
+  obligations.model.ts · index.ts
+  components/    ObligationRow/, PaySheet/, ResolvedList/, …   sections used by more than one of its screens
 api/
   client/        client.ts · errors.ts · queryClient.ts · invalidation.ts · index.ts
   resources/     common/ · dashboard/ · obligations/ · operations/ · accounts/ · categories/ · setup/
@@ -70,6 +75,7 @@ api/
 lib/
   money/         format.ts · input.ts · index.ts
   dates/         parse.ts · format.ts · relative.ts · index.ts
+  recurrence/    format.ts · index.ts
 ```
 
 ```text
@@ -79,7 +85,7 @@ app → features → shared → api / lib / design-system
 
 * **`app/`** holds routes only. A route file renders a screen exported by a feature and wires navigation; it holds no data fetching, business logic, or styling of its own. Nothing imports from `app/`.
 * **`features/<feature>/`** holds only what is specific to one product area: its screens, the sections that only those screens show (`components/`), and the mapping from API data to what those screens render (`<feature>.model.ts`, or the `.model.ts` of the component that uses it). A feature never imports another feature. A new folder under `features/` is picked up by the lint rules automatically.
-* **`shared/`** holds app code that is not specific to one feature and that several screens use or will use: screen scaffolding (`Screen`, `ScreenLoading`, `ScreenError`, and the `useRefresh` pull-to-refresh hook), the toast (`Toast`, `useToast`), error copy for API errors (`errorMessage`), the mutation lock (`useMutationLock`), the keyboard state (`useKeyboardVisible`), and list and row patterns from the screen designs (`SectionTitle`, `ListGroup`, `Notice`, `DetailRow`, `OperationRow` with `operationDisplay`). `Screen` provides the background, safe area, scrolling sections, and refresh control, plus `header`, `footer`, and `overlay` slots; it does not pad the `header`, so each screen pads its own. `Toast` takes a `bottom` offset so it can sit above a footer. It may import `api/`, `lib/`, and `design-system/`, never `features/` or `app/`.
+* **`shared/`** holds app code that is not specific to one feature and that several screens use or will use: screen scaffolding (`Screen`, `ScreenLoading`, `ScreenError`, `BackHeader`, `LoadState`, `BottomBar`, and the `useRefresh` pull-to-refresh hook), the sheet (`BottomSheet`), the toast (`ToastProvider`, `ToastOutlet`, `useToast`), error copy for API errors (`errorMessage`, with `ACCOUNTS_NOT_LOADED_ERROR` and `CATEGORIES_NOT_LOADED_ERROR`), the account and category choices of a form (`choices/`), the mutation lock (`useMutationLock`), the keyboard state (`useKeyboardVisible`), the loading timing (`useDelayedIndicator`, `useDelayedLoading`), `useIsMounted`, and list and row patterns from the screen designs (`SectionTitle`, `ListGroup`, `Notice`, `DetailRow`, `OperationRow` with `operationDisplay`). `Screen` provides the background, safe area, scrolling sections, optional pull-to-refresh (only when `onRefresh` is given, so a form's typed values are never replaced), and a `scrollRef`, plus `header`, `footer`, and `overlay` slots; it does not pad the `header`, so each screen pads its own. `BackHeader` is the back button header of a screen; `LoadState` is a back-button screen before it has data: the delayed `ActivityBar` with its text, or the failure with "Reintentar". `Notice` has the tones `info`, `warning`, and `danger`, an optional title, and `details`; `DetailRow` has `muted`. The toast lives in one `ToastProvider` in the root layout, so a toast shown just before a screen closes stays on display on the screen it returns to; each screen draws it with `ToastOutlet`, which takes a `bottom` offset so it can sit above a footer. It may import `api/`, `lib/`, and `design-system/`, never `features/` or `app/`.
 * **`api/`** knows nothing about the UI. It may import only `lib/`. It is organized by resource (see Server data).
 * **`lib/`** holds pure helpers with no React Native, UI, or API code. It imports nothing from the other layers.
 * **`design-system/`** is self-contained. It imports nothing from the other layers.
@@ -92,6 +98,7 @@ app → features → shared → api / lib / design-system
 | Component folder | `PascalCase/`, named like the component | `components/Button/` |
 | Component | `Name.tsx` | `Button.tsx` |
 | Styles of a component | `Name.styles.ts` | `Button.styles.ts` |
+| Screen of a feature | `<Feature>Screen.tsx` at the feature root when the feature has one screen; `<Name>Screen/` unit folder when it has several | `DashboardScreen.tsx`, `ObligationDetailScreen/` |
 | Non-React logic of a component or screen | `Name.model.ts` (`<feature>.model.ts` for logic several sections of a feature share) | `RegistrationSheet.model.ts`, `dashboard.model.ts` |
 | Hook | `useName.ts` | `useToast.ts` |
 | Grouping folder (not a component) | lowercase | `tokens/`, `hooks/`, `resources/`, `money/` |
@@ -121,8 +128,9 @@ Before writing anything, look for it in `design-system/`, `shared/`, `lib/`, and
 
 * Use **Expo Router**, as `mobile/AGENTS.md` describes; routes live in `src/app/`, and `_layout.tsx` files define navigators.
 * `src/app/_layout.tsx` mounts the app-wide providers (`SafeAreaProvider` → `QueryClientProvider` → `DesignSystemProvider`) and a header-less `Stack`. `src/app/index.tsx` is the entry gate: it redirects (`<Redirect>`) to `/onboarding` when the user has no accounts and to `/dashboard` otherwise. `onboarding.tsx` and `dashboard.tsx` are the two screens; `_layout.tsx` fades into the dashboard.
+* The commitments (obligations) routes, in `src/app/obligations/`: `/obligations` (list), `/obligations/new` (form), `/obligations/[id]` (detail; the `from=dashboard` param makes its back button read "‹ Inicio" instead of "‹ Compromisos"), and `/obligations/[id]/edit` (form). The screens are in `features/obligations/`: list, detail (pay, skip, reopen, undo a payment, archive), and the create/edit form. The routes wire navigation and the screens never import another feature.
 * After the initial setup the app replaces the route, so Back never returns to the onboarding, and the dashboard shows the arrival toast "{nombre} está lista." once.
-* Screens follow the Claude Design project "Dashboard Finanzas". It has no tabs: the home screen is the dashboard, with a bottom action bar (Ingreso, + Gasto) that opens the registration sheet ("Nuevo gasto" / "Nuevo ingreso": amount, optional category, and the account shown or chosen). Transferir, Revisión, and Agregar compromiso stay hidden until they have a design (and, for Revisión, an endpoint).
+* Screens follow the Claude Design project "Dashboard Finanzas". It has no tabs: the home screen is the dashboard, with a bottom action bar (Ingreso, + Gasto) that opens the registration sheet ("Nuevo gasto" / "Nuevo ingreso": amount, optional category, and the account shown or chosen). Transferir and Revisión stay hidden until they have a design (and, for Revisión, an endpoint). The "Próximos compromisos" section leads to the commitments: "Ver todos los compromisos (n)" opens the list, a new user's invite has "Agregar compromiso", and a row whose payment is blocked shows "Revisar" instead of "Pagar", which opens the detail. That row uses the dashboard API's `paymentBlocked`; the list and detail compute blocked from the account's and category's statuses.
 * The first run is the onboarding (`features/onboarding/`): two steps (account name, opening balance), a preparation view, and error screens for network and generic failures. It calls `POST /api/v1/setup`; a 409 `INITIAL_SETUP_ALREADY_COMPLETED` counts as success.
 
 ### Server data (TanStack Query)
@@ -132,7 +140,9 @@ Before writing anything, look for it in `design-system/`, `shared/`, `lib/`, and
 * Query keys are defined in one place in `api/` and start with the resource (`queryKeys` in `api/client/queryClient.ts`: `['dashboard']`, `['obligations']`, `['operations']`, `['accounts']`, `['categories']`).
 * **Invalidation lives with the mutation**, in `api/`, never in a feature: every mutation hook invalidates the queries whose data it changes. Mutations that move money (registrations, payments, cancellations) share one invalidation helper (`invalidateMoneyMovement` in `api/client/invalidation.ts`), so they always refresh the same data (dashboard, obligations, operations, accounts).
 * **Never retry a mutation.** Registrations and payments are not idempotent (`docs/backlog.md` §3): mutations have `retry: 0`, and a screen runs them through the shared mutation lock, which blocks a second submission synchronously and keeps the submit buttons inactive until the mutation settles. Only queries (GET) may be retried.
-* Every screen handles the loading, empty, and error states of its queries, and supports pull-to-refresh, with the scaffolding in `shared/`.
+* **A mutation whose result toast can outlive its screen** (the screen closes or navigates on success, or the user may leave while it runs) uses `mutateAsync` with `try`/`catch`/`finally`, not `mutate(variables, { onSuccess, … })`: TanStack Query v5 does not call the per-call callbacks of `mutate` once the component that called it has unmounted, so the toast and the lock release would be lost. Release the mutation lock in `finally`. Check `useIsMounted()` before navigating.
+* Every screen handles the loading, empty, and error states of its queries, and supports pull-to-refresh (except a form, whose typed values must not be replaced), with the scaffolding in `shared/`.
+* A screen that only needs the server's "today" reads `horizonQuery()` (`api/resources/dashboard/`): it shares the dashboard's cache entry.
 
 ### API client
 
@@ -144,7 +154,7 @@ Before writing anything, look for it in `design-system/`, `shared/`, `lib/`, and
 ### Money, dates, and forms
 
 * Money stays in integer cents everywhere in the app. `lib/` formats it for display with `Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })`, and parses user input into cents without floating-point arithmetic.
-* API dates are ISO-8601 calendar dates (`2026-10-10`) without a time zone. Keep them as strings; never build them through `new Date(...)` in UTC. "Today" is the server's: use `horizon.from` from the dashboard (`docs/backlog.md` §9.6).
+* API dates are ISO-8601 calendar dates (`2026-10-10`) without a time zone. Keep them as strings; never build them through `new Date(...)` in UTC. "Today" is the server's: use `horizon.from` from the dashboard, through `horizonQuery()` (`docs/backlog.md` §9.6). `lib/dates/` does the calendar arithmetic and Spanish date texts on those strings, and `lib/recurrence/` the Spanish text of an obligation's calendar and the form's summary; the occurrences themselves are always the server's.
 * Forms use `useState` and the design system `Field`. No form library.
 * There is no global client state store. React context is only for cross-cutting providers (theme, query client).
 
@@ -179,8 +189,14 @@ Code is always commented. Comments are written in **English**, like the Java cod
 `mobile/src/design-system/` translates the "Lucas DS" design system from claude.ai/design (`tokens.css` + `components.css`) to React Native. It is the only source of visual values.
 
 * Wrap the app once in `<DesignSystemProvider>`. It loads Inter and JetBrains Mono and provides the theme. Read the theme with `useTheme()`.
-* Build screens with `Root`, `Stack`, `Row`, `Text`, `Code`, `Button`, `Field`, `AmountField`, `ChoiceGroup`, `ActivityBar`, `Card`, and `Badge` before writing custom views.
-* Proposals pending adoption in Lucas DS (approved by the developer for the app, not yet in the source project): the components `AmountField`, `ChoiceGroup`, and `ActivityBar`; the tokens `control.xl`, `control.touch`, the `amount` text style, and the semantic color `colors.scrim`; and the `size` and `fullWidth` props of `Field` and `fullWidth` of `Button`. `scrim` is the backdrop behind dialogs and sheets (neutral-900 at 32 % in light, neutral-950 at 60 % in dark); use it instead of a literal color.
+* Build screens with `Root`, `Stack`, `Row`, `Text`, `Code`, `Button`, `Field`, `AmountField`, `ChoiceGroup`, `ActivityBar`, `Card`, `Badge`, `PressableRow`, `ConfirmDialog`, `DateField`, and `DatePickerSheet` before writing custom views.
+* Proposals pending adoption in Lucas DS (approved by the developer for the app, not yet in the source project): the components `AmountField`, `ChoiceGroup`, `ActivityBar`, `PressableRow`, `ConfirmDialog`, `DateField`, and `DatePickerSheet`; the tokens `control.xl`, `control.touch`, the `amount` text style, and the semantic color `colors.scrim`; and the `size` and `fullWidth` props of `Field` and `fullWidth` of `Button`. `scrim` is the backdrop behind dialogs and sheets (neutral-900 at 32 % in light, neutral-950 at 60 % in dark); use it instead of a literal color.
+* Decisions of the `PressableRow`, `ConfirmDialog`, `DateField`, and `DatePickerSheet` proposals:
+  * They carry Spanish copy inside ("Cancelar", month and weekday names), because the app is Spanish-only for now.
+  * `DatePickerSheet` keeps its own Spanish month and weekday tables and calendar arithmetic (`DatePickerSheet.model.ts`), because the design system cannot import `lib/`. It also repeats the sheet chrome of `shared/BottomSheet` (modal, scrim, handle), because the design system cannot import `shared/`; keep the two in step.
+  * `ConfirmDialog` has no destructive variant (the design system's destructive button is pending), so it never uses red.
+  * Their icons (chevron, calendar) are drawn as inline SVG inside each component, because icons are pending in Lucas DS.
+  * Still pending in the date picker: keyboard navigation in the month grid, Esc to close, and returning focus to the button that opened it.
 * **Tokens only.** Colors come from `useTheme().colors` (semantic tokens). Spacing, radii, control heights, and fonts come from `space`, `radius`, `control`, `borderWidth`, and `fontFamily`. No literal colors, sizes, radii, or spacing. The only literals allowed are `1` (border) and `2` (focus ring), through `borderWidth`. Never use `primitives` in UI code.
 * Light and dark themes follow the system. Never branch on `scheme` to pick colors: if something needs a different value in dark mode, a semantic token is missing.
 * The fluid styles (`display`, `title-1`, `title-2`, `spaceSection`) are for screen-level titles and section spacing only, never inside a component.

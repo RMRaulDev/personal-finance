@@ -1,11 +1,10 @@
-import { useEffect } from 'react';
-import { AccessibilityInfo, Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, space, Text, useThemedStyles } from '../../../design-system';
 
 import { createToastStyles } from './Toast.styles';
-import type { ToastMessage } from './useToast';
+import type { ToastMessage } from './ToastProvider';
 
 /** Props of `Toast`. */
 export interface ToastProps {
@@ -20,19 +19,13 @@ export interface ToastProps {
   bottom?: number;
 }
 
-/** Floating message at the bottom of the screen, with an optional action such as "Deshacer". */
+/**
+ * Floating message at the bottom of the screen, with an optional action such as "Deshacer". Android
+ * announces it through its live region; `ToastProvider` announces it on iOS.
+ */
 export function Toast({ toast, onDismiss, bottom }: ToastProps) {
   const styles = useThemedStyles(createToastStyles);
   const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    // The toast appears without focus moving to it. Android announces it through the live region
-    // below; iOS has no live regions, so it is announced explicitly (doing both reads it twice on
-    // Android).
-    if (Platform.OS === 'ios') {
-      AccessibilityInfo.announceForAccessibility(toast.text);
-    }
-  }, [toast]);
 
   return (
     <View accessibilityLiveRegion="polite" style={[styles.toast, { bottom: bottom ?? space[8] + insets.bottom }]}>

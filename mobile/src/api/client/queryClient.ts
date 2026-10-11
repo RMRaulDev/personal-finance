@@ -8,11 +8,16 @@ const MAX_QUERY_RETRIES = 2;
 
 /**
  * Query keys of every resource, defined in one place so a mutation can invalidate exactly the
- * data it changes. Each key starts with the resource name.
+ * data it changes. Each key starts with the resource name, so invalidating `obligations` also
+ * invalidates every obligation and its occurrences.
  */
 export const queryKeys = {
   dashboard: ['dashboard'],
   obligations: ['obligations'],
+  /** One obligation: `['obligations', id]`. */
+  obligation: (obligationId: string) => ['obligations', obligationId] as const,
+  /** The occurrences of one obligation: `['obligations', id, 'occurrences']`. */
+  obligationOccurrences: (obligationId: string) => ['obligations', obligationId, 'occurrences'] as const,
   operations: ['operations'],
   accounts: ['accounts'],
   categories: ['categories'],

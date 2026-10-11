@@ -31,7 +31,7 @@ SQLite Persistence
 * **Infrastructure / Persistence for Core**: COMPLETE
 * **Core Integration Boundary**: ESTABLISHED
 * **Entry / Delivery Layer (REST API / Controllers)**: FOUNDATION IN PLACE (Spring Boot bootstrap, configuration, error mapping, single-user mode, `Clock`, and strict JSON; endpoints exist for accounts, categories, initial setup, operations (E3), obligations (E4: lifecycle, occurrences, and queries), and the dashboard (E5); the entry layer plan (E1-E5, E2b, E4c) is complete; outside Core milestone)
-* **Mobile Application (React Native + Expo, Android and iOS, `mobile/`)**: FOUNDATION IN PLACE (Expo app with Expo Router and TanStack Query, design system, lint and formatting; the Dashboard screen consumes `GET /api/v1/dashboard` and pays and undoes occurrences; the onboarding (initial setup) and the registration of incomes and expenses exist; outside Core milestone; see `mobile.md`)
+* **Mobile Application (React Native + Expo, Android and iOS, `mobile/`)**: FOUNDATION IN PLACE (Expo app with Expo Router and TanStack Query, design system, lint and formatting; the Dashboard screen consumes `GET /api/v1/dashboard` and pays and undoes occurrences; the onboarding (initial setup) and the registration of incomes and expenses exist; the commitments (Compromisos) screens exist: list, detail (pay, skip, reopen, archive), and the create/edit form; outside Core milestone; see `mobile.md`)
 * **Complete MVP Product**: PENDING
 
 ### Future Architectural Layering

@@ -1,2 +1,2 @@
 export { formatMoney } from './format';
-export { formatAmountInput, parseAmountInput, type ParsedAmount } from './input';
+export { amountInputFromCents, formatAmountInput, parseAmountInput, type ParsedAmount } from './input';

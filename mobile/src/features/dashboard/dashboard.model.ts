@@ -6,7 +6,7 @@ import type {
   PaymentBlockedItem,
   RecentActivityItem,
 } from '../../api';
-import { daysBetween, formatDayMonth, formatDueDate, formatMoney } from '../../lib';
+import { daysBetween, formatDayMonth, formatDueDate, formatMoney, formatShortDate } from '../../lib';
 
 // Pure mapping from the API response to what the dashboard renders. Keeping it out of the
 // components makes every rule of the design (texts, order, limits) readable in one place. The
@@ -23,10 +23,10 @@ export interface CommitmentRow {
   /** Occurrence to pay. For an overdue obligation it is the oldest overdue date. */
   dueDate: IsoDate;
   name: string;
-  /** Secondary line: when it is due, or why it cannot be paid. */
+  /** Secondary line: when it is due, or "Pago bloqueado · {fecha}". */
   when: string;
   amountCents: number;
-  /** True when the account or category is inactive, so "Pagar" is inactive. */
+  /** True when the account or category is inactive: "Revisar" (opens the detail) replaces "Pagar". */
   blocked: boolean;
 }
 
@@ -45,21 +45,9 @@ export function horizonLabel(dashboard: DashboardResponse): string {
   return `Próximos ${horizonDays(dashboard)} días · ${formatDayMonth(dashboard.horizon.to)}`;
 }
 
-/** Why a blocked obligation cannot be paid, from its PAYMENT_BLOCKED attention item. */
-function blockedReason(item: PaymentBlockedItem | undefined): string {
-  if (!item) {
-    return 'No se puede pagar';
-  }
-  if (item.accountInactive && item.categoryInactive) {
-    return 'Cuenta y categoría inactivas';
-  }
-  if (item.accountInactive) {
-    return 'Cuenta inactiva';
-  }
-  if (item.categoryInactive) {
-    return 'Categoría inactiva';
-  }
-  return 'No se puede pagar';
+/** Secondary line of a row that cannot be paid: "Pago bloqueado · 18 oct". */
+function blockedWhen(today: IsoDate, dueDate: IsoDate): string {
+  return `Pago bloqueado · ${formatShortDate(today, dueDate)}`;
 }
 
 /**
@@ -91,7 +79,7 @@ export function commitmentRows(dashboard: DashboardResponse): CommitmentRow[] {
       dueDate: item.oldestOverdue,
       name: item.obligation.name,
       when: blockedItem
-        ? blockedReason(blockedItem)
+        ? blockedWhen(today, item.oldestOverdue)
         : item.overdueCount > 1
           ? `${item.overdueCount} pendientes desde el ${since}`
           : `pendiente desde el ${since}`,
@@ -103,13 +91,14 @@ export function commitmentRows(dashboard: DashboardResponse): CommitmentRow[] {
   }
 
   for (const commitment of dashboard.upcomingCommitments) {
-    const blockedItem = blockedByObligation.get(commitment.obligation.id);
     rows.push({
       key: commitmentKey(commitment.obligation.id, commitment.dueDate),
       obligationId: commitment.obligation.id,
       dueDate: commitment.dueDate,
       name: commitment.obligation.name,
-      when: commitment.paymentBlocked ? blockedReason(blockedItem) : formatDueDate(today, commitment.dueDate),
+      when: commitment.paymentBlocked
+        ? blockedWhen(today, commitment.dueDate)
+        : formatDueDate(today, commitment.dueDate),
       amountCents: commitment.amountCents,
       blocked: commitment.paymentBlocked,
     });
@@ -142,13 +131,23 @@ export function extraNoticesText(items: AccountShortfallItem[]): string {
     .join(' ');
 }
 
+/** How many obligations the user has: all of them, and the active ones. */
+export interface ObligationCounts {
+  total: number;
+  active: number;
+}
+
 /**
- * Whether the user has any obligation at all, as the `select` of the obligations query. It only
- * tells a new user (invite them to add commitments) apart from a user with nothing due in the
- * horizon. A module-level function, so the query keeps a stable `select`.
+ * Counts the obligations, as the `select` of the obligations query: `total` tells a new user (invite
+ * them to add commitments) apart from a user with nothing due in the horizon, and shows "Ver todos
+ * los compromisos" (archived ones count); `active` is the number in that link. A module-level
+ * function, so the query keeps a stable `select`.
  */
-export function hasAnyObligation(obligations: ObligationResponse[]): boolean {
-  return obligations.length > 0;
+export function obligationCounts(obligations: ObligationResponse[]): ObligationCounts {
+  return {
+    total: obligations.length,
+    active: obligations.filter((obligation) => obligation.status === 'ACTIVE').length,
+  };
 }
 
 /** Toast text after paying a commitment: "Pagaste Renta · $8,000". */

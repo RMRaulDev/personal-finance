@@ -1,18 +1,15 @@
-import type { AccountResponse, CategoryResponse, RecentActivityItem } from '../../../../api';
-import type { ChoiceOption } from '../../../../design-system';
+import type { AccountResponse, RecentActivityItem } from '../../../../api';
 import { formatMoney } from '../../../../lib';
 
 // Pure rules of the registration sheet ("Nuevo gasto" / "Nuevo ingreso"): its texts, errors, and
-// choices, kept out of the components so they read in one place.
+// default account, kept out of the components so they read in one place. The account and category
+// choices are shared with other forms (`shared` → `choiceOptions`).
 
 /** What the registration sheet registers: an expense ("+ Gasto") or an income ("Ingreso"). */
 export type RegistrationType = 'EXPENSE' | 'INCOME';
 
 /** Error under the sheet's amount when it is empty, $0, or negative. */
 export const AMOUNT_REQUIRED_ERROR = 'Escribe un importe mayor a $0.';
-
-/** Shown on "Guardar" while the accounts have not loaded yet. Not in the design. */
-export const ACCOUNTS_NOT_LOADED_ERROR = 'Aún no cargamos tus cuentas. Intenta de nuevo.';
 
 /** Shown on "Guardar" when the user has no active account to register in. Not in the design. */
 export const NO_ACTIVE_ACCOUNT_ERROR = 'No tienes cuentas activas.';
@@ -27,27 +24,10 @@ export function registeredToastText(type: RegistrationType, amountCents: number)
   return `${type === 'EXPENSE' ? 'Gasto' : 'Ingreso'} registrado · ${formatMoney(amountCents)}`;
 }
 
-/** Accounts that take new operations, in the API's order. */
-export function activeAccounts(accounts: AccountResponse[]): AccountResponse[] {
-  return accounts.filter((account) => account.status === 'ACTIVE');
-}
-
-/** Chips of the sheet's category choice: the active categories of that type, in the API's order. */
-export function categoryOptions(categories: CategoryResponse[], type: RegistrationType): ChoiceOption<string>[] {
-  return categories
-    .filter((category) => category.type === type && category.status === 'ACTIVE')
-    .map((category) => ({ value: category.id, label: category.name }));
-}
-
-/** Chips of the sheet's account choice, for a user with several active accounts. */
-export function accountOptions(accounts: AccountResponse[]): ChoiceOption<string>[] {
-  return accounts.map((account) => ({ value: account.id, label: account.name }));
-}
-
 /**
  * Account the sheet preselects: the last one used, which is the account of the newest income or
  * expense in the dashboard's recent activity, while it is still active; otherwise the first active
- * account. Nothing is stored on the device. `accounts` are the active ones (`activeAccounts`).
+ * account. Nothing is stored on the device. `accounts` are the active ones (`activeAccounts` in shared).
  * Undefined when there is no active account.
  */
 export function defaultAccountId(recent: RecentActivityItem[], accounts: AccountResponse[]): string | undefined {
